@@ -3,7 +3,10 @@ This repository includes data and analysis scripts to accompany:
 # Nitrogen pollution interacts with thermal stress to increase coral bleaching across the seascape
 
 ### Author of analysis and code: Mary K Donovan
-### Currently submitted for peer review
+### Currently submitted for peer review as:
+Mary K. Donovan, Thomas C. Adam, Andrew A. Shantz, Kelly E. Speare, Katrina S. Munsterman, Mallory M. Rice, Russell J. Schmitt, Sally J. Holbrook, Deron E. Burkepile. Nitrogen pollution interacts with thermal stress to increase coral bleaching across the seascape.
+ 
+
 
 -----
 
