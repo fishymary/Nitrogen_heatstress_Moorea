@@ -320,3 +320,92 @@ str(moorea)
 
 write.csv(moorea,'data/Poc_Acrop_bleaching_all_data_wCumHeat.csv')
 
+# supplemental figures ----------------------------------------------------
+
+# Figure S5
+temp <- temperature.day
+temp$Month <- format(temperature.day$day, '%m')
+temp$Year <- format(temperature.day$day, '%Y')
+temp <- temp %>% group_by(Month,Year,site,reef_type_code) %>% summarise(m.max=max(temp_c)) %>% ungroup()
+str(temp)
+temp$Month <- as.numeric(temp$Month)
+temp <- subset(temp, Month > 1 & Month < 5) # subset for austral summer
+mma_site <- temp %>% group_by(site,reef_type_code) %>% summarise(mmm=median(m.max))
+mma_site
+mma_site$LTER_site <- 'LTER_1'
+mma_site$LTER_site[mma_site$site=='LTER02'] <- 'LTER_2'
+mma_site$LTER_site[mma_site$site=='LTER03'] <- 'LTER_3'
+mma_site$LTER_site[mma_site$site=='LTER04'] <- 'LTER_4'
+mma_site$LTER_site[mma_site$site=='LTER05'] <- 'LTER_5'
+mma_site$LTER_site[mma_site$site=='LTER06'] <- 'LTER_6'
+mma_site$Habitat <- as.character('Lagoon')
+mma_site$Habitat[mma_site$reef_type_code=='FRI'] <- 'Fringe'
+
+mma_site_adj <- mma_site
+mma_site_adj$mmm[mma_site$LTER_site=='LTER_1' & mma_site$Habitat=='Lagoon'] <- mma_site$mmm[mma_site$LTER_site=='LTER_2' & mma_site$Habitat=='Lagoon']
+mma_site_adj$mmm[mma_site$LTER_site=='LTER_5' & mma_site$Habitat=='Lagoon'] <- mma_site$mmm[mma_site$LTER_site=='LTER_6' & mma_site$Habitat=='Lagoon']
+
+temp <- moorea %>% distinct(LTER_site,Habitat,avgTotN)
+temp <- left_join(temp,mma_site_adj)
+png(file='outputs/FigureS5.png',height=2000,width=2400,res=300)
+plot(temp$avgTotN,temp$mmm,xlab='Total N',ylab='Mean Maximum Monthly Temperature',pch=19)
+text(0.63,29.68,round(cor(temp$avgTotN,temp$mmm,use="complete.obs"),2),font=2)
+dev.off()
+
+# Figure S6
+temp <- temperature.day
+temp$Month <- format(temperature.day$day, '%m')
+temp$Year <- format(temperature.day$day, '%Y')
+temp <- temp %>% group_by(site,reef_type_code) %>% summarise(mean=mean(temp_c)) %>% ungroup()
+str(temp)
+# temp$Month <- as.numeric(temp$Month)
+# temp <- subset(temp, Month > 1 & Month < 5) # subset for austral summer
+# mma_site <- temp %>% group_by(site,reef_type_code) %>% summarise(mmm=median(m.max))
+temp_mean_site <- temp
+temp_mean_site$LTER_site <- 'LTER_1'
+temp_mean_site$LTER_site[temp_mean_site$site=='LTER02'] <- 'LTER_2'
+temp_mean_site$LTER_site[temp_mean_site$site=='LTER03'] <- 'LTER_3'
+temp_mean_site$LTER_site[temp_mean_site$site=='LTER04'] <- 'LTER_4'
+temp_mean_site$LTER_site[temp_mean_site$site=='LTER05'] <- 'LTER_5'
+temp_mean_site$LTER_site[temp_mean_site$site=='LTER06'] <- 'LTER_6'
+temp_mean_site$Habitat <- as.character('Lagoon')
+temp_mean_site$Habitat[temp_mean_site$reef_type_code=='FRI'] <- 'Fringe'
+
+
+temp <- temperature.day
+temp$Month <- format(temperature.day$day, '%m')
+temp$Year <- format(temperature.day$day, '%Y')
+temp <- temp %>% group_by(site,reef_type_code) %>% summarise(sd=sd(temp_c)) %>% ungroup()
+str(temp)
+# temp$Month <- as.numeric(temp$Month)
+# temp <- subset(temp, Month > 1 & Month < 5) # subset for austral summer
+# mma_site <- temp %>% group_by(site,reef_type_code) %>% summarise(mmm=median(m.max))
+temp_sd_site <- temp
+temp_sd_site$LTER_site <- 'LTER_1'
+temp_sd_site$LTER_site[temp_sd_site$site=='LTER02'] <- 'LTER_2'
+temp_sd_site$LTER_site[temp_sd_site$site=='LTER03'] <- 'LTER_3'
+temp_sd_site$LTER_site[temp_sd_site$site=='LTER04'] <- 'LTER_4'
+temp_sd_site$LTER_site[temp_sd_site$site=='LTER05'] <- 'LTER_5'
+temp_sd_site$LTER_site[temp_sd_site$site=='LTER06'] <- 'LTER_6'
+temp_sd_site$Habitat <- as.character('Lagoon')
+temp_sd_site$Habitat[temp_sd_site$reef_type_code=='FRI'] <- 'Fringe'
+
+temp_mean_site$mean[temp_mean_site$LTER_site=='LTER_1' & temp_mean_site$Habitat=='Lagoon'] <- temp_mean_site$mean[temp_mean_site$LTER_site=='LTER_2' & temp_mean_site$Habitat=='Lagoon']
+temp_mean_site$mean[temp_mean_site$LTER_site=='LTER_5' & temp_mean_site$Habitat=='Lagoon'] <- temp_mean_site$mean[temp_mean_site$LTER_site=='LTER_6' & temp_mean_site$Habitat=='Lagoon']
+temp_sd_site$sd[temp_sd_site$LTER_site=='LTER_1' & temp_sd_site$Habitat=='Lagoon'] <- temp_sd_site$sd[temp_sd_site$LTER_site=='LTER_2' & temp_sd_site$Habitat=='Lagoon']
+temp_sd_site$sd[temp_sd_site$LTER_site=='LTER_5' & temp_sd_site$Habitat=='Lagoon'] <- temp_sd_site$sd[temp_sd_site$LTER_site=='LTER_6' & temp_sd_site$Habitat=='Lagoon']
+
+temp <- moorea %>% distinct(LTER_site,Habitat,avgTotN)
+temp <- left_join(temp,temp_mean_site)
+temp <- left_join(temp,temp_sd_site)
+
+png(file='outputs/FigureS6.png',height=4000,width=2400,res=300)
+par(mfrow=c(2,1),mar=c(4,4,2,1),oma=c(2,0,0,0),xpd=T)
+
+plot(temp$avgTotN,temp$mean,xlab='Total N',ylab='Mean Temperature',pch=19)
+text(0.63,27.92,round(cor(temp$avgTotN,temp$mean,use="complete.obs"),2),font=2)
+
+plot(temp$avgTotN,temp$sd,xlab='Total N',ylab='SD Temperature',pch=19)
+text(0.63,1.12,round(cor(temp$avgTotN,temp$sd,use="complete.obs"),2),font=2)
+dev.off()
+
