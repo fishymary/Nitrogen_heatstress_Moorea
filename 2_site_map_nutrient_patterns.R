@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------
-# Nutrient pollution alters coral bleaching across the seascape
+# Nitrogen pollution interacts with thermal stress to increase coral bleaching across the seascape
 # Donovan et al. 
 # 2 - Site map and nutrient patterns
 # -----------------------------------------------------------------------
@@ -74,53 +74,10 @@ nutsUTM <- spTransform(xy, projection(mo.shp.dem))
 nutsUTM.df <- as.data.frame(nutsUTM)
 
 # set up boundary for kriging
-# using outline from Tom, sent May 2 2019
 ashapem <- read.csv("data/nut_boundary2.csv", header = T)
 ashapem <- as.matrix(ashapem[,2:3])
 
 borderpolygon <- list(data.frame(ashapem[,1], ashapem[,2]))# the borderpolygon object is a list that will be part of the kriging function
-
-# old code for creating a reef outline
-# # create a convex hull around survey points
-# # cutz <- chull(matrix(c(all_nuts_all$Longitude,all_nuts_all$Latitude),ncol=2))
-# # cutz <- matrix(c(all_nuts_all$Longitude,all_nuts_all$Latitude),ncol=2)[c(cutz, cutz[1]), ]
-# 
-# # use lidar extent as boundary
-# # use outline of lidar extent created in ArcGIS
-# reef.outline <- readOGR('data/mask_shapes/lidar_extent_pygon_filled.shp')
-# reef.outline.pj <- spTransform(reef.outline,projection(dem_land)) # transform to same projection as dem
-# plot(reef.outline.pj)
-# 
-# # plot to make sure things are lining up
-# plot(reef.outline.pj)
-# plot(mo.shp.dem,add=T)
-# plot(nutsUTM,add=T)
-# 
-# # get the min/max range for lat/long to make a box
-# x.range <- as.numeric(c(min(all_nuts_all$Longitude)-0.01, max(all_nuts_all$Longitude)+0.01))  # min/max longitude of the interpolation area
-# y.range <- as.numeric(c(min(all_nuts_all$Latitude)-0.01, max(all_nuts_all$Latitude)+0.01))  # min/max latitude of the interpolation area  
-# 
-# square <- cbind(x.range[1],y.range[2],  # NW corner
-#                 x.range[2], y.range[2],  # NE corner
-#                 x.range[2],y.range[1],  # SE corner
-#                 x.range[1],y.range[1], # SW corner
-#                 x.range[1],y.range[2])  # NW corner again - close ploygon
-# id=1
-# polys <- SpatialPolygons(mapply(function(poly, id) 
-# {
-#   xy <- matrix(poly, ncol=2, byrow=TRUE)
-#   Polygons(list(Polygon(xy)), ID=id)
-# }, 
-# split(square, row(square)), id),
-# proj4string=CRS(as.character("+proj=longlat +ellps=WGS84 +datum=WGS84")))
-# plot(polys)
-# polys.utm <- spTransform(polys,projection(mo.shp.dem))
-# 
-# ashapesp.t.df <- slot(polys.utm, "polygons")[[1]]
-# ashapesp.t.df <- slot(ashapesp.t.df, 'Polygons')
-# ashapesp.t.df.go <- slot(ashapesp.t.df[[1]], 'coords')
-# 
-# borderpolygon <- list(data.frame(ashapesp.t.df.go[,1], ashapesp.t.df.go[,2]))
 
 # kriging
 krig1 <- kriging(x=nutsUTM.df$coords.x1, y=nutsUTM.df$coords.x2, response=nutsUTM.df$avgTotN, pixels=1000, polygons=borderpolygon) 
@@ -128,11 +85,6 @@ str(krig1)
 
 krig2 <- krig1$map
 str(krig2)
-# krigxy <- SpatialPoints(coords=krig2[,c("x","y")],proj4string=CRS(projection(mo.shp.dem)))
-# krigxy$pred <- krig2$pred
-# # plot(krigxy)
-# krigxy.crop <- krigxy[reef.outline.pj,] # clip the output to the reef outline polygon
-# plot(krigxy.crop)
 krigLLdf <- as.data.frame(krig2)
 
 ggplot() +
