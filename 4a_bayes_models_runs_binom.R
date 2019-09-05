@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------
-# Nutrient pollution alters coral bleaching across the seascape
+# Nitrogen pollution interacts with thermal stress to increase coral bleaching across the seascape
 # Donovan et al. 
 # 4 - Bayesian hierarchical model for testing interaction between nutrients and temperature on bleaching
 # binomial and beta models seperated
@@ -97,16 +97,6 @@ cat("model{
 
    
     # predictions
-    for(z in 1:50){
-        pred.interA_p.1[z] <- B0_habitat_p[1] + inprod(beta_point_p,interA[z,])
-        pred.interB_p.1[z] <- B0_habitat_p[1] + inprod(beta_point_p,interB[z,])
-        pred.interC_p.1[z] <- B0_habitat_p[1] + inprod(beta_point_p,interC[z,])
-        
-        pred.interA_p.2[z] <- B0_habitat_p[2] + inprod(beta_point_p,interA[z,])
-        pred.interB_p.2[z] <- B0_habitat_p[2] + inprod(beta_point_p,interB[z,])
-        pred.interC_p.2[z] <- B0_habitat_p[2] + inprod(beta_point_p,interC[z,])
-    }
-
    for(z in 1:12){
         pred.inter.cat.1[z] <- B0_habitat_p[1] + inprod(beta_point_p,interAll[z,])
         pred.inter.cat.2[z] <- B0_habitat_p[2] + inprod(beta_point_p,interAll[z,])
@@ -118,7 +108,7 @@ cat("model{
 temp <- moorea[moorea$Taxa=="Pocillopora",]
 temp <- temp[!is.na(temp$Percent_bleached),]
 temp <- temp[!is.na(temp$avgTotN),]
-# temp <- temp[sample(nrow(temp),100),]
+# temp <- temp[sample(nrow(temp),100),] #for testing
 y <- temp$Percent_bleached
 y <- y/100
 y_p <- ifelse(y > 0, 1, 0)
@@ -141,58 +131,7 @@ X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$to
 for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
 
 # new data for predictions
-totN_new <- as.matrix(data.frame('totN'=seq(from=min(X_point[,1]),to=max(X_point[,1]),length=50),
-                                 'cumtemp'=rep(mean(X_point[,2]),length=50),
-                                 'cumtempXtotN'=rep(mean(X_point[,3]),length=50)))
-
-cumtemp_new <- as.matrix(data.frame('totN'=rep(mean(X_point[,1]),50),
-                                    'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                                    'cumtempXtotN'=rep(mean(X_point[,3]),length=50)))
-
-inter_new <- as.matrix(data.frame('totN'=rep(mean(X_point[,1]),50),
-                                  'cumtemp'=rep(mean(X_point[,2]),length=50),
-                                  'cumtempXtotN'=seq(from=min(X_point[,3]),to=max(X_point[,3]),length=50)))
-
 # interaction as 3 categories defined by lower, middle, upper quartiles
-interA <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25),50))*seq(from=min(X_point[,2])
-                                                                                        ,to=max(X_point[,2]),length=50)))
-
-interB <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),50)*seq(from=min(X_point[,2])
-                                                                                       ,to=max(X_point[,2]),length=50)))
-
-interC <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),50)*seq(from=min(X_point[,2])
-                                                                                        ,to=max(X_point[,2]),length=50)))
-
-
-interA.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interB.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interC.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interA.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
-interB.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
-interC.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
 
 inter_min <- as.matrix(data.frame(
   # min heat stress, low-med-high nuts
@@ -233,7 +172,7 @@ jd <- list(B=B,
            K=2,
            coast=as.numeric(as.factor(as.character(site_preds$coast))),
            M=3,
-           interA=interA,interB=interB,interC=interC,interAll=interAll
+           interAll=interAll
 )
 
 nXcol <- ncol(x_colony)
@@ -262,12 +201,6 @@ out <- clusterEvalQ(cl,{
   zmCore <- coda.samples(tmod, c(
                                  "beta_colony_p","beta_point_p","B0_habitat_p",
                                  "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
-                                 'pred.interA_p.1','pred.interB_p.1','pred.interC_p.1',
-                                 'pred.interA_p.2','pred.interB_p.2','pred.interC_p.2',
-                                  'pred.interA_p.max.1','pred.interB_p.max.1','pred.interC_p.max.1',
-                                 'pred.interA_p.max.2','pred.interB_p.max.2','pred.interC_p.max.2',
-                                 'pred.interA_p.q.1','pred.interB_p.q.1','pred.interC_p.q.1',
-                                 'pred.interA_p.q.2','pred.interB_p.q.2','pred.interC_p.q.2',
                                  'pred.inter.cat.1',
                                  'pred.inter.cat.2',
                                  'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
@@ -276,7 +209,7 @@ out <- clusterEvalQ(cl,{
 zmPrp <- mcmc.list(out)
 stopCluster(cl)
 
-saveRDS(zmPrp, 'binom_poc_avgTotN_081519.Rdata')
+saveRDS(zmPrp, 'binom_poc.Rdata')
 
 
 # Acropora & TotN ------------------------------------------------------
@@ -306,59 +239,6 @@ X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$to
 for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
 
 # new data for predictions
-totN_new <- as.matrix(data.frame('totN'=seq(from=min(X_point[,1]),to=max(X_point[,1]),length=50),
-                                 'cumtemp'=rep(mean(X_point[,2]),length=50),
-                                 'cumtempXtotN'=rep(mean(X_point[,3]),length=50)))
-
-cumtemp_new <- as.matrix(data.frame('totN'=rep(mean(X_point[,1]),50),
-                                    'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                                    'cumtempXtotN'=rep(mean(X_point[,3]),length=50)))
-
-inter_new <- as.matrix(data.frame('totN'=rep(mean(X_point[,1]),50),
-                                  'cumtemp'=rep(mean(X_point[,2]),length=50),
-                                  'cumtempXtotN'=seq(from=min(X_point[,3]),to=max(X_point[,3]),length=50)))
-
-# interaction as 3 categories defined by lower, middle, upper quartiles
-interA <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25),50))*seq(from=min(X_point[,2])
-                                                                                        ,to=max(X_point[,2]),length=50)))
-
-interB <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),50)*seq(from=min(X_point[,2])
-                                                                                       ,to=max(X_point[,2]),length=50)))
-
-interC <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),50)*seq(from=min(X_point[,2])
-                                                                                        ,to=max(X_point[,2]),length=50)))
-
-
-interA.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interB.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interC.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interA.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
-interB.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
-interC.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
 inter_min <- as.matrix(data.frame(
   # min heat stress, low-med-high nuts
   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
@@ -398,7 +278,7 @@ jd <- list(B=B,
            K=2,
            coast=as.numeric(as.factor(as.character(site_preds$coast))),
            M=3,
-           interA=interA,interB=interB,interC=interC,interAll=interAll
+           interAll=interAll
 )
 
 nXcol <- ncol(x_colony)
@@ -427,12 +307,6 @@ out <- clusterEvalQ(cl,{
   zmCore <- coda.samples(tmod, c(
     "beta_colony_p","beta_point_p","B0_habitat_p",
     "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
-    'pred.interA_p.1','pred.interB_p.1','pred.interC_p.1',
-    'pred.interA_p.2','pred.interB_p.2','pred.interC_p.2',
-    'pred.interA_p.max.1','pred.interB_p.max.1','pred.interC_p.max.1',
-    'pred.interA_p.max.2','pred.interB_p.max.2','pred.interC_p.max.2',
-    'pred.interA_p.q.1','pred.interB_p.q.1','pred.interC_p.q.1',
-    'pred.interA_p.q.2','pred.interB_p.q.2','pred.interC_p.q.2',
     'pred.inter.cat.1',
     'pred.inter.cat.2',
     'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
@@ -441,7 +315,7 @@ out <- clusterEvalQ(cl,{
 zmPrp <- mcmc.list(out)
 stopCluster(cl)
 
-saveRDS(zmPrp, 'binom_acr_avgTotN_081519.Rdata')
+saveRDS(zmPrp, 'binom_acr.Rdata')
 
 
 
@@ -472,59 +346,7 @@ X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$to
 for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
 
 # new data for predictions
-totN_new <- as.matrix(data.frame('totN'=seq(from=min(X_point[,1]),to=max(X_point[,1]),length=50),
-                                 'cumtemp'=rep(mean(X_point[,2]),length=50),
-                                 'cumtempXtotN'=rep(mean(X_point[,3]),length=50)))
-
-cumtemp_new <- as.matrix(data.frame('totN'=rep(mean(X_point[,1]),50),
-                                    'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                                    'cumtempXtotN'=rep(mean(X_point[,3]),length=50)))
-
-inter_new <- as.matrix(data.frame('totN'=rep(mean(X_point[,1]),50),
-                                  'cumtemp'=rep(mean(X_point[,2]),length=50),
-                                  'cumtempXtotN'=seq(from=min(X_point[,3]),to=max(X_point[,3]),length=50)))
-
 # interaction as 3 categories defined by lower, middle, upper quartiles
-interA <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25),50))*seq(from=min(X_point[,2])
-                                                                                        ,to=max(X_point[,2]),length=50)))
-
-interB <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),50)*seq(from=min(X_point[,2])
-                                                                                       ,to=max(X_point[,2]),length=50)))
-
-interC <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),50)*seq(from=min(X_point[,2])
-                                                                                        ,to=max(X_point[,2]),length=50)))
-
-
-interA.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interB.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interC.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interA.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
-interB.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
-interC.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
 inter_min <- as.matrix(data.frame(
   # min heat stress, low-med-high nuts
   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
@@ -564,7 +386,7 @@ jd <- list(B=B,
            K=2,
            coast=as.numeric(as.factor(as.character(site_preds$coast))),
            M=3,
-           interA=interA,interB=interB,interC=interC,interAll=interAll
+           interAll=interAll
 )
 
 nXcol <- ncol(x_colony)
@@ -580,7 +402,6 @@ initFunc <- function(){return(list(
 ))}
 
 n.adapt <- 500; n.update <- 5000; n.iter <- 10000
-# n.adapt <- 100; n.update <- 500; n.iter <- 1000
 
 # run chains in parallel
 cl <- makeCluster(3) # this determines the number of chains, must be less than the number of cores on computer
@@ -593,12 +414,6 @@ out <- clusterEvalQ(cl,{
   zmCore <- coda.samples(tmod, c(
     "beta_colony_p","beta_point_p","B0_habitat_p",
     "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
-    'pred.interA_p.1','pred.interB_p.1','pred.interC_p.1',
-    'pred.interA_p.2','pred.interB_p.2','pred.interC_p.2',
-    'pred.interA_p.max.1','pred.interB_p.max.1','pred.interC_p.max.1',
-    'pred.interA_p.max.2','pred.interB_p.max.2','pred.interC_p.max.2',
-    'pred.interA_p.q.1','pred.interB_p.q.1','pred.interC_p.q.1',
-    'pred.interA_p.q.2','pred.interB_p.q.2','pred.interC_p.q.2',
     'pred.inter.cat.1',
     'pred.inter.cat.2',
     'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
@@ -607,7 +422,7 @@ out <- clusterEvalQ(cl,{
 zmPrp <- mcmc.list(out)
 stopCluster(cl)
 
-saveRDS(zmPrp, 'binom_poc_avgdN15_081519.Rdata')
+saveRDS(zmPrp, 'binom_poc.Rdata')
 
 
 # Acropora & avgdN15 ------------------------------------------------------
@@ -637,59 +452,8 @@ X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$to
 for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
 
 # new data for predictions
-totN_new <- as.matrix(data.frame('totN'=seq(from=min(X_point[,1]),to=max(X_point[,1]),length=50),
-                                 'cumtemp'=rep(mean(X_point[,2]),length=50),
-                                 'cumtempXtotN'=rep(mean(X_point[,3]),length=50)))
-
-cumtemp_new <- as.matrix(data.frame('totN'=rep(mean(X_point[,1]),50),
-                                    'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                                    'cumtempXtotN'=rep(mean(X_point[,3]),length=50)))
-
-inter_new <- as.matrix(data.frame('totN'=rep(mean(X_point[,1]),50),
-                                  'cumtemp'=rep(mean(X_point[,2]),length=50),
-                                  'cumtempXtotN'=seq(from=min(X_point[,3]),to=max(X_point[,3]),length=50)))
 
 # interaction as 3 categories defined by lower, middle, upper quartiles
-interA <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25),50))*seq(from=min(X_point[,2])
-                                                                                        ,to=max(X_point[,2]),length=50)))
-
-interB <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),50)*seq(from=min(X_point[,2])
-                                                                                       ,to=max(X_point[,2]),length=50)))
-
-interC <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),50),
-                               'cumtemp'=seq(from=min(X_point[,2]),to=max(X_point[,2]),length=50),
-                               'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),50)*seq(from=min(X_point[,2])
-                                                                                        ,to=max(X_point[,2]),length=50)))
-
-
-interA.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interB.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interC.max <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),2),
-                                   'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                   'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),2)*c(min(X_point[,2]),max(X_point[,2]))))
-
-interA.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.25)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.25)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
-interB.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.5)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.5)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
-interC.q <- as.matrix(data.frame('totN'=rep(quantile(X_point[,1],c(0.75)),2),
-                                 'cumtemp'=c(min(X_point[,2]),max(X_point[,2])),
-                                 'cumtempXtotN'=rep(quantile(X_point[,1],c(0.75)),2)*c(quantile(X_point[,2],0.25),quantile(X_point[,2],0.75))))
-
 inter_min <- as.matrix(data.frame(
   # min heat stress, low-med-high nuts
   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
@@ -729,7 +493,7 @@ jd <- list(B=B,
            K=2,
            coast=as.numeric(as.factor(as.character(site_preds$coast))),
            M=3,
-           interA=interA,interB=interB,interC=interC,interAll=interAll
+           interAll=interAll
 )
 
 nXcol <- ncol(x_colony)
@@ -745,7 +509,6 @@ initFunc <- function(){return(list(
 ))}
 
 n.adapt <- 500; n.update <- 5000; n.iter <- 10000
-# n.adapt <- 100; n.update <- 500; n.iter <- 1000
 
 # run chains in parallel
 cl <- makeCluster(3) # this determines the number of chains, must be less than the number of cores on computer
@@ -758,12 +521,6 @@ out <- clusterEvalQ(cl,{
   zmCore <- coda.samples(tmod, c(
     "beta_colony_p","beta_point_p","B0_habitat_p",
     "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
-    'pred.interA_p.1','pred.interB_p.1','pred.interC_p.1',
-    'pred.interA_p.2','pred.interB_p.2','pred.interC_p.2',
-    'pred.interA_p.max.1','pred.interB_p.max.1','pred.interC_p.max.1',
-    'pred.interA_p.max.2','pred.interB_p.max.2','pred.interC_p.max.2',
-    'pred.interA_p.q.1','pred.interB_p.q.1','pred.interC_p.q.1',
-    'pred.interA_p.q.2','pred.interB_p.q.2','pred.interC_p.q.2',
     'pred.inter.cat.1',
     'pred.inter.cat.2',
     'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
@@ -772,7 +529,7 @@ out <- clusterEvalQ(cl,{
 zmPrp <- mcmc.list(out)
 stopCluster(cl)
 
-saveRDS(zmPrp, 'binom_acr_avgdN15_081519.Rdata')
+saveRDS(zmPrp, 'binom_acr.Rdata')
 
 
 
