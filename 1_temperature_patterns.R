@@ -1,6 +1,6 @@
 
 # -----------------------------------------------------------------------
-# Nutrient pollution alters coral bleaching across the seascape
+# Nitrogen pollution interacts with thermal stress to increase coral bleaching across the seascape
 # Donovan et al. 
 # 1 - Temperature Patterns
 # -----------------------------------------------------------------------
