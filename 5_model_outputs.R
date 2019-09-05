@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------
-# Nutrient pollution alters coral bleaching across the seascape
+# Nitrogen pollution interacts with heat stress to increase coral bleaching across the seascape
 # Donovan et al. 
 # 5 - model outputs from 4
 # -----------------------------------------------------------------------
