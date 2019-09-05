@@ -223,37 +223,7 @@ temp$dayz <- format(temp$day, '%d')
 # points(mean_temp~day,data=temp[c(temp$Year==2016 & temp$reef_type_code=='BAK' & temp$site=='LTER04'),],type='l',lwd=2,col=rgb(255,0,255,100,max=255))
 # points(mean_temp~day,data=temp[c(temp$Year==2016 & temp$reef_type_code=='BAK' & temp$site=='LTER06'),],type='l',lwd=2,col=rgb(160,32,240,100,max=255))
 
-# library(wesanderson)
-# pal <- wes_palette(21, name = "Darjeeling1", type = "continuous")
-# library(beyonce)
-# pal <- beyonce_palette(49)
-# library(viridis)
-# pal <- plasma(6)
-# pal <- viridis(6)
-# pal <- inferno(6)
-# pal <- magma(6)
-# pal <- c(rgb(0,0,255,150,max=255),rgb(0,255,0,200,max=255),rgb(255,165,0,200,max=255),rgb(255,0,255,200,max=255),rgb(255,0,255,200,max=255),rgb(160,32,240,200,max=255))
-pal <- c("#50b47a",
-         "#9750a1",
-         "#a09e3f",
-         "#6778d0",
-         "#ba563c",
-         "#b94a73")
 st <- 255
-pal <- c(rgb(80,180,122,st,max=255),
-         rgb(151,80,161,st,max=255),
-         rgb(160,158,63,st,max=255),
-         rgb(103,120,208,st,max=255),
-         rgb(186,86,60,st,max=255),
-         rgb(185,74,115,st,max=255))
-
-pal <- c(rgb(230,175,211,st,max=255),
-         rgb(154,218,190,st,max=255),
-         rgb(170,188,237,st,max=255),
-         rgb(207,213,159,st,max=255),
-         rgb(118,210,228,st,max=255),
-         rgb(230,177,151,st,max=255))
-
 pal <- c(rgb(190,125,216,st,max=255),
          rgb(141,177,71,st,max=255),
          rgb(96,163,222,st,max=255),
