@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------
-# Nutrient pollution alters coral bleaching across the seascape
+# Nitrogen pollution interacts with thermal stress to increase coral bleaching across the seascape
 # Donovan et al. 
 # 3 - Bleaching patterns summary
 # -----------------------------------------------------------------------
@@ -15,12 +15,7 @@ library(boot)
 # bleaching
 moorea <- read.csv('data/moorea_withavgnuts.csv')
 
-# # lidar
-# m.lidar <- read.table('data/bathy_LIDAR_Riegl_820_05m.xyz')
-# head(m.lidar)
-# colnames(m.lidar) <- c('longitude','latitude','depth')
-# 
-# # summarize ---------------------------------------------------------------
+# summarize ---------------------------------------------------------------
 poc_prev <- moorea %>% filter(Taxa=="Pocillopora" & !is.na(Percent_bleached)) %>% group_by(Point,Latitude,Longitude) %>% summarise('meanPrev'=mean(y)) %>% ungroup()
 hist(poc_prev$meanPrev)
 summary(poc_prev$meanPrev)
