@@ -15,19 +15,19 @@ library(wesanderson)
 library(boot) # for inv.logit()
 
 # data --------------------------------------------------------------------
-poc.binom <- readRDS('hpc_out/binom_poc_avgTotN_081519.Rdata')
+poc.binom <- readRDS('data/hpc_out/binom_poc.Rdata')
 poc.binom.sum <- summary(poc.binom)
 
-poc.beta <- readRDS('hpc_out/beta_poc_avgTotN_081519.Rdata')
+poc.beta <- readRDS('data/hpc_out/beta_poc.Rdata')
 poc.beta.sum <- summary(poc.beta)
 
-acr.binom <- readRDS('hpc_out/binom_acr_avgTotN_081519.Rdata')
+acr.binom <- readRDS('data/hpc_out/binom_acr.Rdata')
 acr.binom.sum <- summary(acr.binom)
 
-acr.beta <- readRDS('hpc_out/beta_acr_avgTotN_081519.Rdata')
+acr.beta <- readRDS('data/hpc_out/beta_acr.Rdata')
 acr.beta.sum <- summary(acr.beta)
 
-moorea <- read.csv('data/moorea_withavgnuts.csv')
+moorea <- read.csv('data/moorea_2016_bleaching.csv')
 
 # convergence and diagnostics ---------------------------------------------
 
@@ -131,7 +131,6 @@ poc.beta.sum$quantiles[param_check,]
 acr.binom.sum$quantiles[param_check,]
 acr.beta.sum$quantiles[param_check,]
 
-
 poc.avgTotN.s <- data.frame(beta=c('Colony Size','Depth','Nutrients','Cum Heat','Nutrients x Heat')
                             ,mean=NA,up=NA,down=NA,up80=NA,down80=NA)
 grepgo <- grep('beta',colnames(poc.beta[[1]]))
@@ -230,12 +229,12 @@ for(i in 1:3){
 acr.avgTotN.p
 
 
-png(file='outputs/Figure4_sep.png',height=1500,width=3500,res=300)
+png(file='outputs/Figure4.png',height=1500,width=3500,res=300)
 par(mfrow=c(1,2),mar=c(3.5,1.5,2,1),mgp=c(2,1,0),oma=c(1,7,0,0))
 # acropora
-plot(acr.avgTotN.p$mean, c(5,4,3,2,1), xlim=c(min(acr.avgTotN.p$down),max(acr.avgTotN.p$up))
+plot(acr.avgTotN.p$mean, c(5,4,3,2,1), xlim=c(-0.92,1.3)
      , ylim=c(0.7,5.6),type='n',ylab='',xlab='',yaxt='n',cex.axis=1.5,cex.lab=1.5,bty='l')
-text(-4.1,5.5, expression("A)"~italic(Acropora)),cex=1.5)
+text(-0.99,5.6, expression("A)"~italic(Acropora)),cex=1.5,pos=4,xpd=T)
 axis(2,at=c(5,4,3,2,1),labels = rep("",5),las=1,cex.axis=1.3,cex.lab=1.5)
 abline(v=0,lty=2)
 #prevelence
@@ -244,6 +243,14 @@ plotCI(acr.avgTotN.p$mean, c(5.1,4.1,3.1,2.1,1.1), ui=acr.avgTotN.p$up, li=acr.a
 plotCI(acr.avgTotN.p$mean, c(5.1,4.1,3.1,2.1,1.1), ui=acr.avgTotN.p$up80, li=acr.avgTotN.p$down80
        , err='x',add=T,pch=NA,lwd=3,sfrac=0,col='black')
 points(acr.avgTotN.p$mean, c(5.1,4.1,3.1,2.1,1.1),pch=19,col=rep(wes_palette("Darjeeling1")[5],5),cex=1.5)
+
+# prevalence
+plotCI(acr.avgTotN.p$mean, c(5.1,4.1,3.1,2.1,1.1), ui=acr.avgTotN.p$up, li=acr.avgTotN.p$down
+       , err='x',add=T,lwd=1,pch=NA,sfrac=0)
+plotCI(acr.avgTotN.p$mean, c(5.1,4.1,3.1,2.1), ui=acr.avgTotN.p$up80, li=acr.avgTotN.p$down80
+       , err='x',add=T,pch=NA,lwd=3,sfrac=0,col='black')
+points(acr.avgTotN.p$mean, c(5.1,4.1,3.1,2.1,1.1),pch=19,col=rep(wes_palette("Darjeeling1")[5],5),cex=1.5)
+
 # severity
 plotCI(acr.avgTotN.s$mean, c(4.9,3.9,2.9,1.9,0.9), ui=acr.avgTotN.s$up, li=acr.avgTotN.s$down
        , err='x',add=T,lwd=1,pch=NA,sfrac=0)
@@ -252,10 +259,10 @@ plotCI(acr.avgTotN.s$mean, c(4.9,3.9,2.9,1.9,0.9), ui=acr.avgTotN.s$up80, li=acr
 points(acr.avgTotN.s$mean, c(4.9,3.9,2.9,1.9,0.9),pch=19,col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
 
 # pocillopora
-plot(poc.avgTotN.p$mean, c(5,4,3,2,1), xlim=c(min(poc.avgTotN.s$down),3)
+plot(poc.avgTotN.p$mean, c(5,4,3,2,1), xlim=c(-0.92,1.3)
      , ylim=c(0.7,5.6),type='n',ylab='',xlab='',yaxt='n'
      ,cex.axis=1.5,cex.lab=1.5,bty='l')
-text(-1.7,5.5, expression("B)"~italic(Pocillopora)),cex=1.5)
+text(-0.99,5.6, expression("B)"~italic(Pocillopora)),cex=1.5,pos=4,xpd=T)
 axis(2,at=c(5,4,3,2,1),labels = rep("",5),las=1,cex.axis=1.3,cex.lab=1.3)
 abline(v=0,lty=2)
 #prevelence
@@ -333,8 +340,8 @@ for(i in 1:12){
 }
 
 
-png(file='outputs/Figure5_poc_prev.png',height=1800,width=3400,res=300)
-par(mar=c(4,4,2,1),mgp=c(2.2,0.9,0),oma=c(0,0,2,1))
+# png(file='outputs/Figure5_poc_prev.png',height=1800,width=3400,res=300)
+par(mfrow=c(1,1),mar=c(4,4,2,1),mgp=c(2.2,0.9,0),oma=c(0,0,2,1))
 
 xseq <- c(1,2,3,5,6,7,9,10,11,13,14,15)
 plot(xseq,poc.binom.inter$mean,ylim=c(0,1),xlim=c(0.5,15.5),type='n',ylab='Predicted Bleaching Severity',xlab='Nutrients',xaxt='n',cex.axis=1.3,cex.lab=1.4)
@@ -360,7 +367,7 @@ mtext('Heat Stress',side=3,outer=T,cex=1.4)
 
 legend('topleft',legend=c('Fringing Reef','Backreef'),pch=c(19,21),col=wes_palette("Darjeeling1")[1],bty='n',cex=1.4)
 
-dev.off()
+# dev.off()
 
 
 ###### Acropora prevalence
@@ -400,7 +407,7 @@ for(i in 1:12){
 }
 
 
-png(file='outputs/Figure5_acr_prev.png',height=1800,width=3400,res=300)
+# png(file='outputs/Figure5_acr_prev.png',height=1800,width=3400,res=300)
 par(mar=c(4,4,2,1),mgp=c(2.2,0.9,0),oma=c(0,0,2,1))
 
 xseq <- c(1,2,3,5,6,7,9,10,11,13,14,15)
@@ -427,7 +434,7 @@ mtext('Heat Stress',side=3,outer=T,cex=1.4)
 
 legend('topleft',legend=c('Fringing Reef','Backreef'),pch=c(19,21),col=wes_palette("Darjeeling1")[1],bty='n',cex=1.4)
 
-dev.off()
+# dev.off()
 
 
 ###### Pocillopora severity
@@ -533,7 +540,7 @@ for(i in 1:12){
 }
 
 
-png(file='outputs/Figure5_acr_sev.png',height=1800,width=3400,res=300)
+# png(file='outputs/Figure5_acr_sev.png',height=1800,width=3400,res=300)
 par(mar=c(4,4,2,1),mgp=c(2.2,0.9,0),oma=c(0,0,2,1))
 
 xseq <- c(1,2,3,5,6,7,9,10,11,13,14,15)
@@ -560,7 +567,7 @@ mtext('Heat Stress',side=3,outer=T,cex=1.4)
 
 legend('topleft',legend=c('Fringing Reef','Backreef'),pch=c(19,21),col=wes_palette("Darjeeling1")[1],bty='n',cex=1.4)
 
-dev.off()
+# dev.off()
 
 
 
