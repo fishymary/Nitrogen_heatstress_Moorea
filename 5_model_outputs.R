@@ -13,6 +13,7 @@ library(rjags)
 library(plotrix)
 library(wesanderson)
 library(boot) # for inv.logit()
+library(dplyr)
 
 # data --------------------------------------------------------------------
 poc.binom <- readRDS('data/hpc_out/binom_poc.Rdata')
@@ -292,283 +293,194 @@ dev.off()
 
 # interaction -------------------------------------------------------------
 
-ind.minmax <-
-  data.frame(
-    temp = c(rep('min', 3), rep('lower', 3), rep('upper', 3), rep('max', 3)),
-    nuts = rep(c('low', 'medium', 'high'),4),
-    'mean' = rep(NA, 6),
-    'up' = rep(NA, 6),
-    'down' = rep(NA, 6),
-    'up80' = rep(NA, 6),
-    'down80' = rep(NA, 6)
-  )
+#### Acropora - data set up
+temp <- moorea[moorea$Taxa=="Acropora",]
+temp <- temp[!is.na(temp$Percent_bleached),]
+temp <- temp[!is.na(temp$avgTotN),]
+temp <- temp[temp$Percent_bleached > 0,]
+temp$point <- as.numeric(as.factor(as.character(temp$Point)))
+site_preds <- temp %>% group_by(point) %>% summarise(cumtemp=unique(cumstress),totN=unique(avgTotN),habitat=unique(Habitat),coast=unique(Island_shore))
+grepgo <- grep('pred_X_1',colnames(acr.beta[[1]]))
+acr_site_pred <- data.frame(site_preds,
+                             fringe_median=inv.logit(acr.beta.sum$quantiles[grepgo,'50%']),
+                             fringe_up=inv.logit(acr.beta.sum$quantiles[grepgo,'97.5%']),
+                             fringe_down=inv.logit(acr.beta.sum$quantiles[grepgo,'2.5%']))
+grepgo <- grep('pred_X_2',colnames(acr.beta[[1]]))
+acr_site_pred <- data.frame(acr_site_pred,
+                             back_median=inv.logit(acr.beta.sum$quantiles[grepgo,'50%']),
+                             back_up=inv.logit(acr.beta.sum$quantiles[grepgo,'97.5%']),
+                             back_down=inv.logit(acr.beta.sum$quantiles[grepgo,'2.5%']))
+head(acr_site_pred)
+acr_site_pred$cumtemp_s <- scale(acr_site_pred$cumtemp)[,1]
+acr_site_pred$totN_s <- scale(acr_site_pred$totN)[,1]
+
+acr_site_pred %>% distinct(habitat,cumtemp) %>% arrange(cumtemp) # inspect for values to use for preds
+
+#### Pocillopora - data set up
+temp <- moorea[moorea$Taxa=="Pocillopora",]
+temp <- temp[!is.na(temp$Percent_bleached),]
+temp <- temp[!is.na(temp$avgTotN),]
+temp <- temp[temp$Percent_bleached > 0,]
+temp$point <- as.numeric(as.factor(as.character(temp$Point)))
+site_preds <- temp %>% group_by(point) %>% summarise(cumtemp=unique(cumstress),totN=unique(avgTotN),habitat=unique(Habitat),coast=unique(Island_shore))
+
+grepgo <- grep('pred_X_1',colnames(poc.beta[[1]]))
+poc_site_pred <- data.frame(site_preds,
+                             fringe_median=inv.logit(poc.beta.sum$quantiles[grepgo,'50%']),
+                             fringe_up=inv.logit(poc.beta.sum$quantiles[grepgo,'97.5%']),
+                             fringe_down=inv.logit(poc.beta.sum$quantiles[grepgo,'2.5%']))
+grepgo <- grep('pred_X_2',colnames(poc.beta[[1]]))
+poc_site_pred <- data.frame(poc_site_pred,
+                            back_median=inv.logit(poc.beta.sum$quantiles[grepgo,'50%']),
+                             back_up=inv.logit(poc.beta.sum$quantiles[grepgo,'97.5%']),
+                             back_down=inv.logit(poc.beta.sum$quantiles[grepgo,'2.5%']))
+head(poc_site_pred)
+poc_site_pred$cumtemp_s <- scale(poc_site_pred$cumtemp)[,1]
+poc_site_pred$totN_s <- scale(poc_site_pred$totN)[,1]
+
+poc_site_pred %>% distinct(habitat,cumtemp) %>% arrange(cumtemp) # inspect for values to use for preds
 
 
-###### Pocillopora prevalence
-grepgo <- grep('pred.inter.cat.1',colnames(poc.binom[[1]]))
-poc.binom.sum$quantiles[grepgo,]
-poc.binom.inter <- ind.minmax
-poc.binom.inter$mean <- inv.logit(poc.binom.sum$statistics[grepgo,'Mean'])
-poc.binom.inter$up <- inv.logit(poc.binom.sum$quantiles[grepgo,'97.5%'])
-poc.binom.inter$down <- inv.logit(poc.binom.sum$quantiles[grepgo,'2.5%'])
-for(i in 1:12){
-  poc.binom.inter$down80[i] <- inv.logit(quantile(c(poc.binom[[1]][,paste0('pred.inter.cat.1[',i,']')],
-                                                    poc.binom[[2]][,paste0('pred.inter.cat.1[',i,']')],
-                                                    poc.binom[[3]][,paste0('pred.inter.cat.1[',i,']')]),0.10))
-}
-for(i in 1:12){
-  poc.binom.inter$up80[i] <- inv.logit(quantile(c(poc.binom[[1]][,paste0('pred.inter.cat.1[',i,']')],
-                                                  poc.binom[[2]][,paste0('pred.inter.cat.1[',i,']')],
-                                                  poc.binom[[3]][,paste0('pred.inter.cat.1[',i,']')]),0.90))
-}
+#### Acropora severity - low heat stress
+acr_min_back <- acr_site_pred %>% 
+  filter(habitat=='Lagoon') %>% 
+  filter(cumtemp < 2)
+plot(acr_min_back$totN_s,acr_min_back$back_median,ylim=c(0.1,0.83),xlim=c(-2.5,3.5))
+plotCI(acr_min_back$totN_s,acr_min_back$back_median,ui=acr_min_back$back_up,li=acr_min_back$back_down,add=T)
 
-grepgo <- grep('pred.inter.cat.2',colnames(poc.binom[[1]]))
-poc.binom.sum$quantiles[grepgo,]
-poc.binom.inter2 <- ind.minmax
-poc.binom.inter2$mean <- inv.logit(poc.binom.sum$statistics[grepgo,'Mean'])
-poc.binom.inter2$up <- inv.logit(poc.binom.sum$quantiles[grepgo,'97.5%'])
-poc.binom.inter2$down <- inv.logit(poc.binom.sum$quantiles[grepgo,'2.5%'])
-for(i in 1:12){
-  poc.binom.inter2$down80[i] <- inv.logit(quantile(c(poc.binom[[1]][,paste0('pred.inter.cat.2[',i,']')],
-                                                     poc.binom[[2]][,paste0('pred.inter.cat.2[',i,']')],
-                                                     poc.binom[[3]][,paste0('pred.inter.cat.2[',i,']')]),0.10))
-}
-for(i in 1:12){
-  poc.binom.inter2$up80[i] <- inv.logit(quantile(c(poc.binom[[1]][,paste0('pred.inter.cat.2[',i,']')],
-                                                   poc.binom[[2]][,paste0('pred.inter.cat.2[',i,']')],
-                                                   poc.binom[[3]][,paste0('pred.inter.cat.2[',i,']')]),0.90))
-}
+#### Acropora severity - moderate heat stress
+acr_mod_back <- acr_site_pred %>% 
+  filter(habitat=='Lagoon') %>% 
+  filter(cumtemp > 2.1 & cumtemp < 2.3)
+plot(acr_mod_back$totN_s,acr_mod_back$back_median,ylim=c(0.1,0.83),xlim=c(-2.5,3.5))
+plotCI(acr_mod_back$totN_s,acr_mod_back$back_median,ui=acr_mod_back$back_up,li=acr_mod_back$back_down,add=T)
 
+#### Acropora severity - high heat stress
+acr_high_back <- acr_site_pred %>% 
+  filter(habitat=='Lagoon') %>% 
+  filter(cumtemp > 2.7)
+plot(acr_high_back$totN_s,acr_high_back$back_median,ylim=c(0.1,0.83),xlim=c(-2.5,3.5))
+plotCI(acr_high_back$totN_s,acr_high_back$back_median,ui=acr_high_back$back_up,li=acr_high_back$back_down,add=T)
 
-# png(file='outputs/Figure5_poc_prev.png',height=1800,width=3400,res=300)
-par(mfrow=c(1,1),mar=c(4,4,2,1),mgp=c(2.2,0.9,0),oma=c(0,0,2,1))
+#### Pocillopora severity - low heat stress
+poc_min_back <- poc_site_pred %>% 
+  filter(habitat=='Lagoon') %>% 
+  filter(cumtemp < 2)
+plot(poc_min_back$totN_s,poc_min_back$back_median,ylim=c(0.1,0.83),xlim=c(-2.5,3.5))
+plotCI(poc_min_back$totN_s,poc_min_back$back_median,ui=poc_min_back$back_up,li=poc_min_back$back_down,add=T)
 
-xseq <- c(1,2,3,5,6,7,9,10,11,13,14,15)
-plot(xseq,poc.binom.inter$mean,ylim=c(0,1),xlim=c(0.5,15.5),type='n',ylab='Predicted Bleaching Severity',xlab='Nutrients',xaxt='n',cex.axis=1.3,cex.lab=1.4)
-plotCI(xseq-0.1,poc.binom.inter$mean,ui=poc.binom.inter$up,li=poc.binom.inter$down,add=T,pch=NA,lwd=1,sfrac=0)
-plotCI(xseq-0.1,poc.binom.inter$mean,ui=poc.binom.inter$up80,li=poc.binom.inter$down80,add=T,pch=NA,lwd=4,sfrac=0)
-points(xseq-0.1,poc.binom.inter$mean,pch=19,col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
+#### Pocillopora severity - moderate heat stress
+poc_mod_back <- poc_site_pred %>% 
+  filter(habitat=='Lagoon') %>% 
+  filter(cumtemp > 2.09 & cumtemp < 2.14)
+plot(poc_mod_back$totN_s,poc_mod_back$back_median,ylim=c(0.1,0.83),xlim=c(-2.5,3.5))
+plotCI(poc_mod_back$totN_s,poc_mod_back$back_median,ui=poc_mod_back$back_up,li=poc_mod_back$back_down,add=T)
 
-plotCI(xseq+0.1,poc.binom.inter2$mean,ui=poc.binom.inter2$up,li=poc.binom.inter2$down,add=T,pch=NA,lwd=1,sfrac=0)
-plotCI(xseq+0.1,poc.binom.inter2$mean,ui=poc.binom.inter2$up80,li=poc.binom.inter2$down80,add=T,pch=NA,lwd=4,sfrac=0)
-points(xseq+0.1,poc.binom.inter2$mean,pch=21,bg='white',col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
+#### Pocillopora severity - high heat stress
+poc_high_back <- poc_site_pred %>% 
+  filter(habitat=='Lagoon') %>% 
+  filter(cumtemp > 2.8)
+plot(poc_high_back$totN_s,poc_high_back$back_median,ylim=c(0.1,0.83),xlim=c(-2.5,3.5))
+plotCI(poc_high_back$totN_s,poc_high_back$back_median,ui=poc_high_back$back_up,li=poc_high_back$back_down,add=T)
 
 
-axis(1,at=xseq,labels=rep(c('Low','Med','High'),4),cex.axis=1.3,cex.lab=1.4)
-abline(v=4,lty=2)
-abline(v=8,lty=2)
-abline(v=12,lty=2)
+####### combine
+png(file='outputs/Figure5.png',height=2300,width=3100,res=300)
+par(mgp=c(2.2,.9,0),oma=c(4,4,5,0),mfrow=c(2,3),mar=c(1.5,1,1,1))
 
-mtext('Minimum',side=3,at=2,cex=1.4)
-mtext('Low Quartile',side=3,at=6,cex=1.4)
-mtext('Up Quartile',side=3,at=10,cex=1.4)
-mtext('Maximum',side=3,at=14,cex=1.4)
-mtext('Heat Stress',side=3,outer=T,cex=1.4)
+plot(acr_min_back$totN_s,acr_min_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l',xaxt='n')
+axis(1,at=c(-2,-1,0,1,2,3),labels=c('','','','','',''))
+plotCI(acr_min_back$totN_s,acr_min_back$back_median,ui=acr_min_back$back_up,li=acr_min_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1)
 
-legend('topleft',legend=c('Fringing Reef','Backreef'),pch=c(19,21),col=wes_palette("Darjeeling1")[1],bty='n',cex=1.4)
+plot(acr_mod_back$totN_s,acr_mod_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l',xaxt='n',yaxt='n')
+axis(1,at=c(-2,-1,0,1,2,3),labels=c('','','','','',''))
+axis(2,at=c(0.3,0.4,0.5,0.6,0.7,0.8),labels=c('','','','','',''))
+plotCI(acr_mod_back$totN_s,acr_mod_back$back_median,ui=acr_mod_back$back_up,li=acr_mod_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1)
 
-# dev.off()
+plot(acr_high_back$totN_s,acr_high_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l',xaxt='n',yaxt='n')
+axis(1,at=c(-2,-1,0,1,2,3),labels=c('','','','','',''))
+axis(2,at=c(0.3,0.4,0.5,0.6,0.7,0.8),labels=c('','','','','',''))
+plotCI(acr_high_back$totN_s,acr_high_back$back_median,ui=acr_high_back$back_up,li=acr_high_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1)
 
+plot(poc_min_back$totN_s,poc_min_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l')
+plotCI(poc_min_back$totN_s,poc_min_back$back_median,ui=poc_min_back$back_up,li=poc_min_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.19)
 
-###### Acropora prevalence
+plot(poc_mod_back$totN_s,poc_mod_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l',yaxt='n')
+axis(2,at=c(0.3,0.4,0.5,0.6,0.7,0.8),labels=c('','','','','',''))
+plotCI(poc_mod_back$totN_s,poc_mod_back$back_median,ui=poc_mod_back$back_up,li=poc_mod_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1)
 
-grepgo <- grep('pred.inter.cat.1',colnames(acr.binom[[1]]))
-acr.binom.sum$quantiles[grepgo,]
-acr.binom.inter <- ind.minmax
-acr.binom.inter$mean <- inv.logit(acr.binom.sum$statistics[grepgo,'Mean'])
-acr.binom.inter$up <- inv.logit(acr.binom.sum$quantiles[grepgo,'97.5%'])
-acr.binom.inter$down <- inv.logit(acr.binom.sum$quantiles[grepgo,'2.5%'])
-for(i in 1:12){
-  acr.binom.inter$down80[i] <- inv.logit(quantile(c(acr.binom[[1]][,paste0('pred.inter.cat.1[',i,']')],
-                                                    acr.binom[[2]][,paste0('pred.inter.cat.1[',i,']')],
-                                                    acr.binom[[3]][,paste0('pred.inter.cat.1[',i,']')]),0.10))
-}
-for(i in 1:12){
-  acr.binom.inter$up80[i] <- inv.logit(quantile(c(acr.binom[[1]][,paste0('pred.inter.cat.1[',i,']')],
-                                                  acr.binom[[2]][,paste0('pred.inter.cat.1[',i,']')],
-                                                  acr.binom[[3]][,paste0('pred.inter.cat.1[',i,']')]),0.90))
-}
+plot(poc_high_back$totN_s,poc_high_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l',yaxt='n')
+axis(2,at=c(0.3,0.4,0.5,0.6,0.7,0.8),labels=c('','','','','',''))
+plotCI(poc_high_back$totN_s,poc_high_back$back_median,ui=poc_high_back$back_up,li=poc_high_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1)
 
-grepgo <- grep('pred.inter.cat.2',colnames(acr.binom[[1]]))
-acr.binom.sum$quantiles[grepgo,]
-acr.binom.inter2 <- ind.minmax
-acr.binom.inter2$mean <- inv.logit(acr.binom.sum$statistics[grepgo,'Mean'])
-acr.binom.inter2$up <- inv.logit(acr.binom.sum$quantiles[grepgo,'97.5%'])
-acr.binom.inter2$down <- inv.logit(acr.binom.sum$quantiles[grepgo,'2.5%'])
-for(i in 1:12){
-  acr.binom.inter2$down80[i] <- inv.logit(quantile(c(acr.binom[[1]][,paste0('pred.inter.cat.2[',i,']')],
-                                                     acr.binom[[2]][,paste0('pred.inter.cat.2[',i,']')],
-                                                     acr.binom[[3]][,paste0('pred.inter.cat.2[',i,']')]),0.10))
-}
-for(i in 1:12){
-  acr.binom.inter2$up80[i] <- inv.logit(quantile(c(acr.binom[[1]][,paste0('pred.inter.cat.2[',i,']')],
-                                                   acr.binom[[2]][,paste0('pred.inter.cat.2[',i,']')],
-                                                   acr.binom[[3]][,paste0('pred.inter.cat.2[',i,']')]),0.90))
-}
-
-
-# png(file='outputs/Figure5_acr_prev.png',height=1800,width=3400,res=300)
-par(mar=c(4,4,2,1),mgp=c(2.2,0.9,0),oma=c(0,0,2,1))
-
-xseq <- c(1,2,3,5,6,7,9,10,11,13,14,15)
-plot(xseq,acr.binom.inter$mean,ylim=c(0,1),xlim=c(0.5,15.5),type='n',ylab='Predicted Bleaching Severity',xlab='Nutrients',xaxt='n',cex.axis=1.3,cex.lab=1.4)
-plotCI(xseq-0.1,acr.binom.inter$mean,ui=acr.binom.inter$up,li=acr.binom.inter$down,add=T,pch=NA,lwd=1,sfrac=0)
-plotCI(xseq-0.1,acr.binom.inter$mean,ui=acr.binom.inter$up80,li=acr.binom.inter$down80,add=T,pch=NA,lwd=4,sfrac=0)
-points(xseq-0.1,acr.binom.inter$mean,pch=19,col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
-
-plotCI(xseq+0.1,acr.binom.inter2$mean,ui=acr.binom.inter2$up,li=acr.binom.inter2$down,add=T,pch=NA,lwd=1,sfrac=0)
-plotCI(xseq+0.1,acr.binom.inter2$mean,ui=acr.binom.inter2$up80,li=acr.binom.inter2$down80,add=T,pch=NA,lwd=4,sfrac=0)
-points(xseq+0.1,acr.binom.inter2$mean,pch=21,bg='white',col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
-
-
-axis(1,at=xseq,labels=rep(c('Low','Med','High'),4),cex.axis=1.3,cex.lab=1.4)
-abline(v=4,lty=2)
-abline(v=8,lty=2)
-abline(v=12,lty=2)
-
-mtext('Minimum',side=3,at=2,cex=1.4)
-mtext('Low Quartile',side=3,at=6,cex=1.4)
-mtext('Up Quartile',side=3,at=10,cex=1.4)
-mtext('Maximum',side=3,at=14,cex=1.4)
-mtext('Heat Stress',side=3,outer=T,cex=1.4)
-
-legend('topleft',legend=c('Fringing Reef','Backreef'),pch=c(19,21),col=wes_palette("Darjeeling1")[1],bty='n',cex=1.4)
-
-# dev.off()
-
-
-###### Pocillopora severity
-grepgo <- grep('pred.inter.cat.1',colnames(poc.beta[[1]]))
-poc.beta.sum$quantiles[grepgo,]
-poc.beta.inter <- ind.minmax
-poc.beta.inter$mean <- inv.logit(poc.beta.sum$statistics[grepgo,'Mean'])
-poc.beta.inter$up <- inv.logit(poc.beta.sum$quantiles[grepgo,'97.5%'])
-poc.beta.inter$down <- inv.logit(poc.beta.sum$quantiles[grepgo,'2.5%'])
-for(i in 1:12){
-  poc.beta.inter$down80[i] <- inv.logit(quantile(c(poc.beta[[1]][,paste0('pred.inter.cat.1[',i,']')],
-                                                   poc.beta[[2]][,paste0('pred.inter.cat.1[',i,']')],
-                                                   poc.beta[[3]][,paste0('pred.inter.cat.1[',i,']')]),0.10))
-}
-for(i in 1:12){
-  poc.beta.inter$up80[i] <- inv.logit(quantile(c(poc.beta[[1]][,paste0('pred.inter.cat.1[',i,']')],
-                                                 poc.beta[[2]][,paste0('pred.inter.cat.1[',i,']')],
-                                                 poc.beta[[3]][,paste0('pred.inter.cat.1[',i,']')]),0.90))
-}
-
-grepgo <- grep('pred.inter.cat.2',colnames(poc.beta[[1]]))
-poc.beta.sum$quantiles[grepgo,]
-poc.beta.inter2 <- ind.minmax
-poc.beta.inter2$mean <- inv.logit(poc.beta.sum$statistics[grepgo,'Mean'])
-poc.beta.inter2$up <- inv.logit(poc.beta.sum$quantiles[grepgo,'97.5%'])
-poc.beta.inter2$down <- inv.logit(poc.beta.sum$quantiles[grepgo,'2.5%'])
-for(i in 1:12){
-  poc.beta.inter2$down80[i] <- inv.logit(quantile(c(poc.beta[[1]][,paste0('pred.inter.cat.2[',i,']')],
-                                                    poc.beta[[2]][,paste0('pred.inter.cat.2[',i,']')],
-                                                    poc.beta[[3]][,paste0('pred.inter.cat.2[',i,']')]),0.10))
-}
-for(i in 1:12){
-  poc.beta.inter2$up80[i] <- inv.logit(quantile(c(poc.beta[[1]][,paste0('pred.inter.cat.2[',i,']')],
-                                                  poc.beta[[2]][,paste0('pred.inter.cat.2[',i,']')],
-                                                  poc.beta[[3]][,paste0('pred.inter.cat.2[',i,']')]),0.90))
-}
-
-
-png(file='outputs/Figure5_poc_sev.png',height=1800,width=3400,res=300)
-par(mar=c(4,4,2,1),mgp=c(2.2,0.9,0),oma=c(0,0,2,1))
-
-xseq <- c(1,2,3,5,6,7,9,10,11,13,14,15)
-plot(xseq,poc.beta.inter$mean,ylim=c(0,1),xlim=c(0.5,15.5),type='n',ylab='Predicted Bleaching Severity',xlab='Nitrogen',xaxt='n',cex.axis=1.3,cex.lab=1.4)
-plotCI(xseq-0.1,poc.beta.inter$mean,ui=poc.beta.inter$up,li=poc.beta.inter$down,add=T,pch=NA,lwd=1,sfrac=0)
-plotCI(xseq-0.1,poc.beta.inter$mean,ui=poc.beta.inter$up80,li=poc.beta.inter$down80,add=T,pch=NA,lwd=4,sfrac=0)
-points(xseq-0.1,poc.beta.inter$mean,pch=19,col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
-
-plotCI(xseq+0.1,poc.beta.inter2$mean,ui=poc.beta.inter2$up,li=poc.beta.inter2$down,add=T,pch=NA,lwd=1,sfrac=0)
-plotCI(xseq+0.1,poc.beta.inter2$mean,ui=poc.beta.inter2$up80,li=poc.beta.inter2$down80,add=T,pch=NA,lwd=4,sfrac=0)
-points(xseq+0.1,poc.beta.inter2$mean,pch=21,bg='white',col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
-
-
-axis(1,at=xseq,labels=rep(c('Low','Med','High'),4),cex.axis=1.3,cex.lab=1.4)
-abline(v=4,lty=2)
-abline(v=8,lty=2)
-abline(v=12,lty=2)
-
-mtext('Minimum',side=3,at=2,cex=1.4)
-mtext('Low Quartile',side=3,at=6,cex=1.4)
-mtext('Up Quartile',side=3,at=10,cex=1.4)
-mtext('Maximum',side=3,at=14,cex=1.4)
-mtext('Heat Stress',side=3,outer=T,cex=1.4)
-
-legend('topleft',legend=c('Fringing Reef','Backreef'),pch=c(19,21),col=wes_palette("Darjeeling1")[1],bty='n',cex=1.4)
+mtext('Total N',side=1,cex=1.5,outer=T,line=1.5)
+mtext('Bleaching Severity',side=2,cex=1.5,outer=T,line=1.5)
+mtext('Low',side=3,cex=1.5,outer=T,at=0.15,line=1)
+mtext('Moderate',side=3,cex=1.5,outer=T,line=1)
+mtext('High',side=3,cex=1.5,outer=T,at=0.85,line=1)
+mtext('Heat Stress',side=3,cex=1.5,outer=T,line=3)
+mtext('Pocillopora',side=3,cex=1.5,outer=T,at=0.09,line=-26,font=3)
+mtext('Acropora',side=3,cex=1.5,outer=T,at=0.09,line=-1,font=3)
 
 dev.off()
 
 
-###### Acropora severity
+png(file='outputs/Figure5_together.png',height=1200,width=3100,res=300)
+par(mgp=c(2.2,.9,0),oma=c(4,4,4,0),mfrow=c(1,3),mar=c(1.5,1,1,1))
 
-grepgo <- grep('pred.inter.cat.1',colnames(acr.beta[[1]]))
-acr.beta.sum$quantiles[grepgo,]
-acr.beta.inter <- ind.minmax
-acr.beta.inter$mean <- inv.logit(acr.beta.sum$statistics[grepgo,'Mean'])
-acr.beta.inter$up <- inv.logit(acr.beta.sum$quantiles[grepgo,'97.5%'])
-acr.beta.inter$down <- inv.logit(acr.beta.sum$quantiles[grepgo,'2.5%'])
-for(i in 1:12){
-  acr.beta.inter$down80[i] <- inv.logit(quantile(c(acr.beta[[1]][,paste0('pred.inter.cat.1[',i,']')],
-                                                   acr.beta[[2]][,paste0('pred.inter.cat.1[',i,']')],
-                                                   acr.beta[[3]][,paste0('pred.inter.cat.1[',i,']')]),0.10))
-}
-for(i in 1:12){
-  acr.beta.inter$up80[i] <- inv.logit(quantile(c(acr.beta[[1]][,paste0('pred.inter.cat.1[',i,']')],
-                                                 acr.beta[[2]][,paste0('pred.inter.cat.1[',i,']')],
-                                                 acr.beta[[3]][,paste0('pred.inter.cat.1[',i,']')]),0.90))
-}
+plot(acr_min_back$totN_s,acr_min_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l')
+plotCI(acr_min_back$totN_s,acr_min_back$back_median,ui=acr_min_back$back_up,li=acr_min_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1)
 
-grepgo <- grep('pred.inter.cat.2',colnames(acr.beta[[1]]))
-acr.beta.sum$quantiles[grepgo,]
-acr.beta.inter2 <- ind.minmax
-acr.beta.inter2$mean <- inv.logit(acr.beta.sum$statistics[grepgo,'Mean'])
-acr.beta.inter2$up <- inv.logit(acr.beta.sum$quantiles[grepgo,'97.5%'])
-acr.beta.inter2$down <- inv.logit(acr.beta.sum$quantiles[grepgo,'2.5%'])
-for(i in 1:12){
-  acr.beta.inter2$down80[i] <- inv.logit(quantile(c(acr.beta[[1]][,paste0('pred.inter.cat.2[',i,']')],
-                                                    acr.beta[[2]][,paste0('pred.inter.cat.2[',i,']')],
-                                                    acr.beta[[3]][,paste0('pred.inter.cat.2[',i,']')]),0.10))
-}
-for(i in 1:12){
-  acr.beta.inter2$up80[i] <- inv.logit(quantile(c(acr.beta[[1]][,paste0('pred.inter.cat.2[',i,']')],
-                                                  acr.beta[[2]][,paste0('pred.inter.cat.2[',i,']')],
-                                                  acr.beta[[3]][,paste0('pred.inter.cat.2[',i,']')]),0.90))
-}
+plotCI(poc_min_back$totN_s,poc_min_back$back_median,ui=poc_min_back$back_up,li=poc_min_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.19,col='red')
 
+plot(acr_mod_back$totN_s,acr_mod_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l',yaxt='n')
+axis(2,at=c(0.3,0.4,0.5,0.6,0.7,0.8),labels=c('','','','','',''))
+plotCI(acr_mod_back$totN_s,acr_mod_back$back_median,ui=acr_mod_back$back_up,li=acr_mod_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1)
 
-# png(file='outputs/Figure5_acr_sev.png',height=1800,width=3400,res=300)
-par(mar=c(4,4,2,1),mgp=c(2.2,0.9,0),oma=c(0,0,2,1))
+plotCI(poc_mod_back$totN_s,poc_mod_back$back_median,ui=poc_mod_back$back_up,li=poc_mod_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1,col='red')
 
-xseq <- c(1,2,3,5,6,7,9,10,11,13,14,15)
-plot(xseq,acr.beta.inter$mean,ylim=c(0,1),xlim=c(0.5,15.5),type='n',ylab='Predicted Bleaching Severity',xlab='Nutrients',xaxt='n',cex.axis=1.3,cex.lab=1.4)
-plotCI(xseq-0.1,acr.beta.inter$mean,ui=acr.beta.inter$up,li=acr.beta.inter$down,add=T,pch=NA,lwd=1,sfrac=0)
-plotCI(xseq-0.1,acr.beta.inter$mean,ui=acr.beta.inter$up80,li=acr.beta.inter$down80,add=T,pch=NA,lwd=4,sfrac=0)
-points(xseq-0.1,acr.beta.inter$mean,pch=19,col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
+plot(acr_high_back$totN_s,acr_high_back$back_median,ylim=c(0.24,0.8),xlim=c(-2.5,3.5),
+     xlab='',ylab='',cex.axis=1.7,bty='l',yaxt='n')
+axis(2,at=c(0.3,0.4,0.5,0.6,0.7,0.8),labels=c('','','','','',''))
+plotCI(acr_high_back$totN_s,acr_high_back$back_median,ui=acr_high_back$back_up,li=acr_high_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1)
 
-plotCI(xseq+0.1,acr.beta.inter2$mean,ui=acr.beta.inter2$up,li=acr.beta.inter2$down,add=T,pch=NA,lwd=1,sfrac=0)
-plotCI(xseq+0.1,acr.beta.inter2$mean,ui=acr.beta.inter2$up80,li=acr.beta.inter2$down80,add=T,pch=NA,lwd=4,sfrac=0)
-points(xseq+0.1,acr.beta.inter2$mean,pch=21,bg='white',col=rep(wes_palette("Darjeeling1")[1],5),cex=1.5)
+plotCI(poc_high_back$totN_s,poc_high_back$back_median,ui=poc_high_back$back_up,li=poc_high_back$back_down,add=T
+       ,pch=19,cex=1.3,sfrac=0,lwd=1.1,col='red')
 
+mtext('Total N',side=1,cex=1.2,outer=T,line=1.5)
+mtext('Bleaching Severity',side=2,cex=1.2,outer=T,line=1.5)
+mtext('Low',side=3,cex=1.2,outer=T,at=0.15,line=0)
+mtext('Moderate',side=3,cex=1.2,outer=T,line=0)
+mtext('High',side=3,cex=1.2,outer=T,at=0.85,line=0)
+mtext('Heat Stress',side=3,cex=1.2,outer=T,line=2)
+# mtext('Pocillopora',side=3,cex=1.5,outer=T,at=0.09,line=-26,font=3)
+# mtext('Acropora',side=3,cex=1.5,outer=T,at=0.09,line=-1,font=3)
 
-axis(1,at=xseq,labels=rep(c('Low','Med','High'),4),cex.axis=1.3,cex.lab=1.4)
-abline(v=4,lty=2)
-abline(v=8,lty=2)
-abline(v=12,lty=2)
+par(fig=c(0, 1, 0, 1), oma=c(0, 0, 0, 0), mar=c(0, 0, 0, 0), new=TRUE)
+plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
+legend(0.35,-0.85,legend='Acropora',pch=19,lty=1,lwd=1.1,cex=1.5,bty='n',text.font=3)
+legend(0.65,-0.85,legend='Pocillopora',pch=19,lty=1,lwd=1.1,cex=1.5,bty='n',text.font=3,col='red')
 
-mtext('Minimum',side=3,at=2,cex=1.4)
-mtext('Low Quartile',side=3,at=6,cex=1.4)
-mtext('Up Quartile',side=3,at=10,cex=1.4)
-mtext('Maximum',side=3,at=14,cex=1.4)
-mtext('Heat Stress',side=3,outer=T,cex=1.4)
-
-legend('topleft',legend=c('Fringing Reef','Backreef'),pch=c(19,21),col=wes_palette("Darjeeling1")[1],bty='n',cex=1.4)
-
-# dev.off()
-
+dev.off()
 
 
 # dN15 --------------------------------------------------------------------
