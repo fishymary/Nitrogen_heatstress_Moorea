@@ -14,7 +14,7 @@ library(dplyr)
 library(parallel)
 
 # data --------------------------------------------------------------------
-moorea <- read.csv('data/moorea_withavgnuts.csv')
+moorea <- read.csv('data/moorea_2016_bleaching.csv')
 
 # prevalence --------------------------------------------------------------
 
@@ -100,7 +100,14 @@ cat("model{
    for(z in 1:12){
         pred.inter.cat.1[z] <- B0_habitat_p[1] + inprod(beta_point_p,interAll[z,])
         pred.inter.cat.2[z] <- B0_habitat_p[2] + inprod(beta_point_p,interAll[z,])
+   }
+    
+    # continuous prediction
+    for(z in 1:400){
+    pred_inter_cont_1[z] <- B0_habitat_p[1] + inprod(beta_point_p,inter_cont[z,])
+    pred_inter_cont_2[z] <- B0_habitat_p[2] + inprod(beta_point_p,inter_cont[z,])
     }
+
     
     }  ", file="binom_hierarchical.jags")
 
@@ -129,6 +136,9 @@ site_preds$cumtempXtotN <- site_preds$cumtemp*site_preds$totN
 
 X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$totN*site_preds$cumtemp))
 for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
+
+# recalculate interaction after centering main effects
+X_point[,3] <- X_point[,1]*X_point[,2]
 
 # new data for predictions
 # interaction as 3 categories defined by lower, middle, upper quartiles
@@ -159,6 +169,15 @@ inter_max <- as.matrix(data.frame(
 ))
 interAll <- rbind(inter_min,inter_low,inter_up,inter_max)
 
+# continuous
+inter_cont <- expand.grid(data.frame(
+  'totN' = seq(from=min(X_point[,1]),to=max(X_point[,1]),length=20),
+  'cumtemp' = seq(from=min(X_point[,2]),to=max(X_point[,2]),length=20)))
+inter_cont <- as.matrix(data.frame(
+  'totN' = inter_cont[,1],
+  'cumtemp' = inter_cont[,2],
+  'cumtempXtotN' = inter_cont[,1]*inter_cont[,2]
+))
 
 jd <- list(B=B,
            y=y_p,
@@ -172,7 +191,7 @@ jd <- list(B=B,
            K=2,
            coast=as.numeric(as.factor(as.character(site_preds$coast))),
            M=3,
-           interAll=interAll
+           interAll=interAll,inter_cont=inter_cont
 )
 
 nXcol <- ncol(x_colony)
@@ -203,6 +222,7 @@ out <- clusterEvalQ(cl,{
                                  "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
                                  'pred.inter.cat.1',
                                  'pred.inter.cat.2',
+                                 'pred_inter_cont_1','pred_inter_cont_2',
                                  'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
   return(as.mcmc(zmCore))
 })
@@ -238,6 +258,9 @@ site_preds$cumtempXtotN <- site_preds$cumtemp*site_preds$totN
 X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$totN*site_preds$cumtemp))
 for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
 
+# recalculate interaction after centering main effects
+X_point[,3] <- X_point[,1]*X_point[,2]
+
 # new data for predictions
 inter_min <- as.matrix(data.frame(
   # min heat stress, low-med-high nuts
@@ -265,6 +288,15 @@ inter_max <- as.matrix(data.frame(
 ))
 interAll <- rbind(inter_min,inter_low,inter_up,inter_max)
 
+# continuous
+inter_cont <- expand.grid(data.frame(
+  'totN' = seq(from=min(X_point[,1]),to=max(X_point[,1]),length=20),
+  'cumtemp' = seq(from=min(X_point[,2]),to=max(X_point[,2]),length=20)))
+inter_cont <- as.matrix(data.frame(
+  'totN' = inter_cont[,1],
+  'cumtemp' = inter_cont[,2],
+  'cumtempXtotN' = inter_cont[,1]*inter_cont[,2]
+))
 
 jd <- list(B=B,
            y=y_p,
@@ -278,7 +310,7 @@ jd <- list(B=B,
            K=2,
            coast=as.numeric(as.factor(as.character(site_preds$coast))),
            M=3,
-           interAll=interAll
+           interAll=interAll,inter_cont=inter_cont
 )
 
 nXcol <- ncol(x_colony)
@@ -309,6 +341,7 @@ out <- clusterEvalQ(cl,{
     "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
     'pred.inter.cat.1',
     'pred.inter.cat.2',
+    'pred_inter_cont_1','pred_inter_cont_2',
     'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
   return(as.mcmc(zmCore))
 })
@@ -319,218 +352,218 @@ saveRDS(zmPrp, 'binom_acr.Rdata')
 
 
 
-# Pocillopora & avgdN15 ------------------------------------------------------
-temp <- moorea[moorea$Taxa=="Pocillopora",]
-temp <- temp[!is.na(temp$Percent_bleached),]
-temp <- temp[!is.na(temp$avgdN15),]
-# temp <- temp[sample(nrow(temp),100),]
-y <- temp$Percent_bleached
-y <- y/100
-y_p <- ifelse(y > 0, 1, 0)
-
-# point
-temp$point <- as.numeric(as.factor(as.character(temp$Point)))
-point <- temp$point
-
-# colony level predictors
-x_colony <- as.matrix(data.frame(temp$Colony_size_class,temp$Depth_m))
-for(i in 1:ncol(x_colony)) x_colony[,i] <- scale(x_colony[,i])[,1]
-B <- ncol(x_colony)
-
-# point level preds
-site_preds <- temp %>% group_by(point) %>% summarise(cumtemp=unique(cumstress),totN=unique(avgdN15),habitat=unique(Habitat),coast=unique(Island_shore))
-# summary(site_preds %>% group_by(point) %>% summarise(length(point)))
-site_preds$cumtempXtotN <- site_preds$cumtemp*site_preds$totN
-
-X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$totN*site_preds$cumtemp))
-for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
-
-# new data for predictions
-# interaction as 3 categories defined by lower, middle, upper quartiles
-inter_min <- as.matrix(data.frame(
-  # min heat stress, low-med-high nuts
-  'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
-  'cumtemp' = rep(min(X_point[,2]),3),
-  'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(min(X_point[,2]),3)
-))
-inter_low <- as.matrix(data.frame(
-  # lower q heat stress, low-med-high nuts
-  'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
-  'cumtemp' = rep(quantile(X_point[,2],0.25),3),
-  'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(quantile(X_point[,2],0.25),3)
-))
-inter_up <- as.matrix(data.frame(
-  # upper q heat stress, low-med-high nuts
-  'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
-  'cumtemp' = rep(quantile(X_point[,2],0.75),3),
-  'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(quantile(X_point[,2],0.75),3)
-))
-inter_max <- as.matrix(data.frame(
-  # upper q heat stress, low-med-high nuts
-  'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
-  'cumtemp' = rep(max(X_point[,2]),3),
-  'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(max(X_point[,2]),3)
-))
-interAll <- rbind(inter_min,inter_low,inter_up,inter_max)
-
-
-jd <- list(B=B,
-           y=y_p,
-           n=length(y),
-           X_colony=x_colony,
-           point=point,
-           P=length(unique(temp$point)),
-           habitat=as.numeric(as.factor(as.character(site_preds$habitat))),
-           X_point=X_point,
-           C=ncol(X_point),
-           K=2,
-           coast=as.numeric(as.factor(as.character(site_preds$coast))),
-           M=3,
-           interAll=interAll
-)
-
-nXcol <- ncol(x_colony)
-nXpoint <- ncol(X_point)
-
-initFunc <- function(){return(list(
-  beta_colony_p=rnorm(nXcol,0,1),
-  beta_point_p=rnorm(nXpoint,-1,1),
-  sigma_point_p=runif(1,0,20),
-  sigma_habitat_p=runif(1,0,20),
-  sigma_coast_p=runif(1,0,1),
-  mu_overall_p=rnorm(1,0,1)
-))}
-
-n.adapt <- 500; n.update <- 5000; n.iter <- 10000
-
-# run chains in parallel
-cl <- makeCluster(3) # this determines the number of chains, must be less than the number of cores on computer
-clusterExport(cl, c('jd','n.adapt','n.update','n.iter','initFunc','nXcol','nXpoint'))
-
-out <- clusterEvalQ(cl,{
-  library(rjags)
-  tmod <- jags.model("binom_hierarchical.jags", data= jd, n.chains=1, n.adapt=n.adapt,inits = initFunc())
-  update(tmod, n.iter = n.update)
-  zmCore <- coda.samples(tmod, c(
-    "beta_colony_p","beta_point_p","B0_habitat_p",
-    "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
-    'pred.inter.cat.1',
-    'pred.inter.cat.2',
-    'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
-  return(as.mcmc(zmCore))
-})
-zmPrp <- mcmc.list(out)
-stopCluster(cl)
-
-saveRDS(zmPrp, 'binom_poc.Rdata')
-
-
-# Acropora & avgdN15 ------------------------------------------------------
-temp <- moorea[moorea$Taxa=="Acropora",]
-temp <- temp[!is.na(temp$Percent_bleached),]
-temp <- temp[!is.na(temp$avgdN15),]
-# temp <- temp[sample(nrow(temp),100),]
-y <- temp$Percent_bleached
-y <- y/100
-y_p <- ifelse(y > 0, 1, 0)
-
-# point
-temp$point <- as.numeric(as.factor(as.character(temp$Point)))
-point <- temp$point
-
-# colony level predictors
-x_colony <- as.matrix(data.frame(temp$Colony_size_class,temp$Depth_m))
-for(i in 1:ncol(x_colony)) x_colony[,i] <- scale(x_colony[,i])[,1]
-B <- ncol(x_colony)
-
-# point level preds
-site_preds <- temp %>% group_by(point) %>% summarise(cumtemp=unique(cumstress),totN=unique(avgdN15),habitat=unique(Habitat),coast=unique(Island_shore))
-# summary(site_preds %>% group_by(point) %>% summarise(length(point)))
-site_preds$cumtempXtotN <- site_preds$cumtemp*site_preds$totN
-
-X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$totN*site_preds$cumtemp))
-for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
-
-# new data for predictions
-
-# interaction as 3 categories defined by lower, middle, upper quartiles
-inter_min <- as.matrix(data.frame(
-  # min heat stress, low-med-high nuts
-  'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
-  'cumtemp' = rep(min(X_point[,2]),3),
-  'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(min(X_point[,2]),3)
-))
-inter_low <- as.matrix(data.frame(
-  # lower q heat stress, low-med-high nuts
-  'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
-  'cumtemp' = rep(quantile(X_point[,2],0.25),3),
-  'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(quantile(X_point[,2],0.25),3)
-))
-inter_up <- as.matrix(data.frame(
-  # upper q heat stress, low-med-high nuts
-  'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
-  'cumtemp' = rep(quantile(X_point[,2],0.75),3),
-  'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(quantile(X_point[,2],0.75),3)
-))
-inter_max <- as.matrix(data.frame(
-  # upper q heat stress, low-med-high nuts
-  'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
-  'cumtemp' = rep(max(X_point[,2]),3),
-  'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(max(X_point[,2]),3)
-))
-interAll <- rbind(inter_min,inter_low,inter_up,inter_max)
-
-
-jd <- list(B=B,
-           y=y_p,
-           n=length(y),
-           X_colony=x_colony,
-           point=point,
-           P=length(unique(temp$point)),
-           habitat=as.numeric(as.factor(as.character(site_preds$habitat))),
-           X_point=X_point,
-           C=ncol(X_point),
-           K=2,
-           coast=as.numeric(as.factor(as.character(site_preds$coast))),
-           M=3,
-           interAll=interAll
-)
-
-nXcol <- ncol(x_colony)
-nXpoint <- ncol(X_point)
-
-initFunc <- function(){return(list(
-  beta_colony_p=rnorm(nXcol,0,1),
-  beta_point_p=rnorm(nXpoint,-1,1),
-  sigma_point_p=runif(1,0,20),
-  sigma_habitat_p=runif(1,0,20),
-  sigma_coast_p=runif(1,0,1),
-  mu_overall_p=rnorm(1,0,1)
-))}
-
-n.adapt <- 500; n.update <- 5000; n.iter <- 10000
-
-# run chains in parallel
-cl <- makeCluster(3) # this determines the number of chains, must be less than the number of cores on computer
-clusterExport(cl, c('jd','n.adapt','n.update','n.iter','initFunc','nXcol','nXpoint'))
-
-out <- clusterEvalQ(cl,{
-  library(rjags)
-  tmod <- jags.model("binom_hierarchical.jags", data= jd, n.chains=1, n.adapt=n.adapt,inits = initFunc())
-  update(tmod, n.iter = n.update)
-  zmCore <- coda.samples(tmod, c(
-    "beta_colony_p","beta_point_p","B0_habitat_p",
-    "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
-    'pred.inter.cat.1',
-    'pred.inter.cat.2',
-    'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
-  return(as.mcmc(zmCore))
-})
-zmPrp <- mcmc.list(out)
-stopCluster(cl)
-
-saveRDS(zmPrp, 'binom_acr.Rdata')
-
+# # Pocillopora & avgdN15 ------------------------------------------------------
+# temp <- moorea[moorea$Taxa=="Pocillopora",]
+# temp <- temp[!is.na(temp$Percent_bleached),]
+# temp <- temp[!is.na(temp$avgdN15),]
+# # temp <- temp[sample(nrow(temp),100),]
+# y <- temp$Percent_bleached
+# y <- y/100
+# y_p <- ifelse(y > 0, 1, 0)
+# 
+# # point
+# temp$point <- as.numeric(as.factor(as.character(temp$Point)))
+# point <- temp$point
+# 
+# # colony level predictors
+# x_colony <- as.matrix(data.frame(temp$Colony_size_class,temp$Depth_m))
+# for(i in 1:ncol(x_colony)) x_colony[,i] <- scale(x_colony[,i])[,1]
+# B <- ncol(x_colony)
+# 
+# # point level preds
+# site_preds <- temp %>% group_by(point) %>% summarise(cumtemp=unique(cumstress),totN=unique(avgdN15),habitat=unique(Habitat),coast=unique(Island_shore))
+# # summary(site_preds %>% group_by(point) %>% summarise(length(point)))
+# site_preds$cumtempXtotN <- site_preds$cumtemp*site_preds$totN
+# 
+# X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$totN*site_preds$cumtemp))
+# for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
+# 
+# # new data for predictions
+# # interaction as 3 categories defined by lower, middle, upper quartiles
+# inter_min <- as.matrix(data.frame(
+#   # min heat stress, low-med-high nuts
+#   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
+#   'cumtemp' = rep(min(X_point[,2]),3),
+#   'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(min(X_point[,2]),3)
+# ))
+# inter_low <- as.matrix(data.frame(
+#   # lower q heat stress, low-med-high nuts
+#   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
+#   'cumtemp' = rep(quantile(X_point[,2],0.25),3),
+#   'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(quantile(X_point[,2],0.25),3)
+# ))
+# inter_up <- as.matrix(data.frame(
+#   # upper q heat stress, low-med-high nuts
+#   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
+#   'cumtemp' = rep(quantile(X_point[,2],0.75),3),
+#   'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(quantile(X_point[,2],0.75),3)
+# ))
+# inter_max <- as.matrix(data.frame(
+#   # upper q heat stress, low-med-high nuts
+#   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
+#   'cumtemp' = rep(max(X_point[,2]),3),
+#   'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(max(X_point[,2]),3)
+# ))
+# interAll <- rbind(inter_min,inter_low,inter_up,inter_max)
+# 
+# 
+# jd <- list(B=B,
+#            y=y_p,
+#            n=length(y),
+#            X_colony=x_colony,
+#            point=point,
+#            P=length(unique(temp$point)),
+#            habitat=as.numeric(as.factor(as.character(site_preds$habitat))),
+#            X_point=X_point,
+#            C=ncol(X_point),
+#            K=2,
+#            coast=as.numeric(as.factor(as.character(site_preds$coast))),
+#            M=3,
+#            interAll=interAll
+# )
+# 
+# nXcol <- ncol(x_colony)
+# nXpoint <- ncol(X_point)
+# 
+# initFunc <- function(){return(list(
+#   beta_colony_p=rnorm(nXcol,0,1),
+#   beta_point_p=rnorm(nXpoint,-1,1),
+#   sigma_point_p=runif(1,0,20),
+#   sigma_habitat_p=runif(1,0,20),
+#   sigma_coast_p=runif(1,0,1),
+#   mu_overall_p=rnorm(1,0,1)
+# ))}
+# 
+# n.adapt <- 500; n.update <- 5000; n.iter <- 10000
+# 
+# # run chains in parallel
+# cl <- makeCluster(3) # this determines the number of chains, must be less than the number of cores on computer
+# clusterExport(cl, c('jd','n.adapt','n.update','n.iter','initFunc','nXcol','nXpoint'))
+# 
+# out <- clusterEvalQ(cl,{
+#   library(rjags)
+#   tmod <- jags.model("binom_hierarchical.jags", data= jd, n.chains=1, n.adapt=n.adapt,inits = initFunc())
+#   update(tmod, n.iter = n.update)
+#   zmCore <- coda.samples(tmod, c(
+#     "beta_colony_p","beta_point_p","B0_habitat_p",
+#     "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
+#     'pred.inter.cat.1',
+#     'pred.inter.cat.2',
+#     'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
+#   return(as.mcmc(zmCore))
+# })
+# zmPrp <- mcmc.list(out)
+# stopCluster(cl)
+# 
+# saveRDS(zmPrp, 'binom_poc.Rdata')
+# 
+# 
+# # Acropora & avgdN15 ------------------------------------------------------
+# temp <- moorea[moorea$Taxa=="Acropora",]
+# temp <- temp[!is.na(temp$Percent_bleached),]
+# temp <- temp[!is.na(temp$avgdN15),]
+# # temp <- temp[sample(nrow(temp),100),]
+# y <- temp$Percent_bleached
+# y <- y/100
+# y_p <- ifelse(y > 0, 1, 0)
+# 
+# # point
+# temp$point <- as.numeric(as.factor(as.character(temp$Point)))
+# point <- temp$point
+# 
+# # colony level predictors
+# x_colony <- as.matrix(data.frame(temp$Colony_size_class,temp$Depth_m))
+# for(i in 1:ncol(x_colony)) x_colony[,i] <- scale(x_colony[,i])[,1]
+# B <- ncol(x_colony)
+# 
+# # point level preds
+# site_preds <- temp %>% group_by(point) %>% summarise(cumtemp=unique(cumstress),totN=unique(avgdN15),habitat=unique(Habitat),coast=unique(Island_shore))
+# # summary(site_preds %>% group_by(point) %>% summarise(length(point)))
+# site_preds$cumtempXtotN <- site_preds$cumtemp*site_preds$totN
+# 
+# X_point <- as.matrix(data.frame(site_preds$totN,site_preds$cumtemp,site_preds$totN*site_preds$cumtemp))
+# for(i in 1:ncol(X_point)) X_point[,i] <- scale(X_point[,i])[,1]
+# 
+# # new data for predictions
+# 
+# # interaction as 3 categories defined by lower, middle, upper quartiles
+# inter_min <- as.matrix(data.frame(
+#   # min heat stress, low-med-high nuts
+#   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
+#   'cumtemp' = rep(min(X_point[,2]),3),
+#   'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(min(X_point[,2]),3)
+# ))
+# inter_low <- as.matrix(data.frame(
+#   # lower q heat stress, low-med-high nuts
+#   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
+#   'cumtemp' = rep(quantile(X_point[,2],0.25),3),
+#   'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(quantile(X_point[,2],0.25),3)
+# ))
+# inter_up <- as.matrix(data.frame(
+#   # upper q heat stress, low-med-high nuts
+#   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
+#   'cumtemp' = rep(quantile(X_point[,2],0.75),3),
+#   'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(quantile(X_point[,2],0.75),3)
+# ))
+# inter_max <- as.matrix(data.frame(
+#   # upper q heat stress, low-med-high nuts
+#   'totN' = quantile(X_point[,1],c(0.25,0.5,0.75)),
+#   'cumtemp' = rep(max(X_point[,2]),3),
+#   'cumtempXtotN' = quantile(X_point[,1],c(0.25,0.5,0.75))*rep(max(X_point[,2]),3)
+# ))
+# interAll <- rbind(inter_min,inter_low,inter_up,inter_max)
+# 
+# 
+# jd <- list(B=B,
+#            y=y_p,
+#            n=length(y),
+#            X_colony=x_colony,
+#            point=point,
+#            P=length(unique(temp$point)),
+#            habitat=as.numeric(as.factor(as.character(site_preds$habitat))),
+#            X_point=X_point,
+#            C=ncol(X_point),
+#            K=2,
+#            coast=as.numeric(as.factor(as.character(site_preds$coast))),
+#            M=3,
+#            interAll=interAll
+# )
+# 
+# nXcol <- ncol(x_colony)
+# nXpoint <- ncol(X_point)
+# 
+# initFunc <- function(){return(list(
+#   beta_colony_p=rnorm(nXcol,0,1),
+#   beta_point_p=rnorm(nXpoint,-1,1),
+#   sigma_point_p=runif(1,0,20),
+#   sigma_habitat_p=runif(1,0,20),
+#   sigma_coast_p=runif(1,0,1),
+#   mu_overall_p=rnorm(1,0,1)
+# ))}
+# 
+# n.adapt <- 500; n.update <- 5000; n.iter <- 10000
+# 
+# # run chains in parallel
+# cl <- makeCluster(3) # this determines the number of chains, must be less than the number of cores on computer
+# clusterExport(cl, c('jd','n.adapt','n.update','n.iter','initFunc','nXcol','nXpoint'))
+# 
+# out <- clusterEvalQ(cl,{
+#   library(rjags)
+#   tmod <- jags.model("binom_hierarchical.jags", data= jd, n.chains=1, n.adapt=n.adapt,inits = initFunc())
+#   update(tmod, n.iter = n.update)
+#   zmCore <- coda.samples(tmod, c(
+#     "beta_colony_p","beta_point_p","B0_habitat_p",
+#     "mu_coast_p","pval.mean","y.new",'pval.sd','R2',
+#     'pred.inter.cat.1',
+#     'pred.inter.cat.2',
+#     'pval.cv','pval.fit','pval.min','pval.max'),n.iter=n.iter, n.thin=1)
+#   return(as.mcmc(zmCore))
+# })
+# zmPrp <- mcmc.list(out)
+# stopCluster(cl)
+# 
+# saveRDS(zmPrp, 'binom_acr.Rdata')
+# 
 
 
 
