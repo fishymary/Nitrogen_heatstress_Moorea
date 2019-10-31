@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/204556956.svg)](https://zenodo.org/badge/latestdoi/204556956)
+
 This repository includes data and analysis scripts to accompany:
 
 # Nitrogen pollution interacts with heat stress to increase coral bleaching across the seascape
