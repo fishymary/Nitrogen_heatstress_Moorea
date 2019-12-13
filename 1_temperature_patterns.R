@@ -251,6 +251,96 @@ points(cumstress~day,data=temp[c(temp$reef_type_code=='FRI' & temp$site=='LTER06
 legend('topright',legend=c('LTER 1','LTER 2','LTER 3','LTER 4','LTER 5','LTER 6'),col=pal,lty=1,lwd=4,cex=1.5,bty='n')
 dev.off()
 
+# eps
+setEPS()
+postscript('outputs/Figure1.eps',height=12,width=7)
+par(mgp=c(2,.7,0),oma=c(0,0,0,2),mfrow=c(2,1),mar=c(3.5,4,1,1))
+# # temp <- subset(temperature.day, reef_type_code=='FRI')
+# # temp <- temp %>% group_by(reef_type_code,day) %>% summarise('mean_temp'=mean(temp_c)) %>% ungroup()
+# # temp$Month <- format(temp$day, '%m')
+# # temp$Year <- format(temp$day, '%Y')
+# # temp$dayz <- format(temp$day, '%d')
+# plot(mean_temp~day,data=temp[c(temp$Year==2016 &temp$reef_type_code=='FRI'),],type='n',
+#      ylab=expression('Temperature '~degree~C),xlab='',cex.lab=1.5,cex.axis=1.5,ylim=c(26,30))
+temp <- subset(temperature.day, reef_type_code=='FRI')
+temp <- temp %>% group_by(reef_type_code,day) %>% summarise('mean_temp'=mean(temp_c)) %>% ungroup()
+temp$Month <- format(temp$day, '%m')
+temp$Year <- format(temp$day, '%Y')
+temp$dayz <- format(temp$day, '%d')
+temp <- temp %>% group_by(Month,dayz) %>% summarise(mean_mean=mean(mean_temp), se=sd(mean_temp)/sqrt(length(mean_temp))) %>% ungroup()
+temp$date <- as.Date(paste(temp$Month,temp$dayz,'2016',sep='-'),format='%m-%d-%Y')
+plot(temp$date,temp$mean_mean,type='n',
+     ylab=expression('Temperature '~degree~C),xlab='',cex.lab=1.7,cex.axis=1.5,ylim=c(26,30),bty='l')
+
+text(as.Date('2016-01-05'),29.9,'A',cex=1.7)
+
+abline(v=as.Date('2016-05-08'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-09'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-10'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-11'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-12'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-13'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-14'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+
+# temp <- subset(temperature.day, reef_type_code=='FRI')
+# temp <- temp %>% group_by(reef_type_code,day) %>% summarise('mean_temp'=mean(temp_c)) %>% ungroup()
+# temp$Month <- format(temp$day, '%m')
+# temp$Year <- format(temp$day, '%Y')
+# temp$dayz <- format(temp$day, '%d')
+# temp <- temp %>% group_by(Month,dayz) %>% summarise(mean_mean=mean(mean_temp), se=sd(mean_temp)/sqrt(length(mean_temp))) %>% ungroup()
+# str(temp)
+# temp$date <- as.Date(paste(temp$Month,temp$dayz,'2016',sep='-'),format='%m-%d-%Y')
+points(temp$date,temp$mean_mean,type='l')
+points(temp$date,temp$mean_mean+1.96*temp$se,type='l',lty=2)
+points(temp$date,temp$mean_mean-1.96*temp$se,type='l',lty=2)
+
+temp <- subset(temperature.day, reef_type_code=='FRI')
+temp <- temp %>% group_by(reef_type_code,day) %>% summarise('mean_temp'=mean(temp_c)) %>% ungroup()
+temp$Month <- format(temp$day, '%m')
+temp$Year <- format(temp$day, '%Y')
+temp$dayz <- format(temp$day, '%d')
+points(mean_temp~day,data=temp[c(temp$Year==2016 &temp$reef_type_code=='FRI'),],type='l',lwd=2,col='blue')
+abline(h=mma_ref,lwd=3,col='red',lty=2)
+
+
+temp <- temperature.day %>% group_by(site,reef_type_code,day) %>% summarise('mean_temp'=mean(temp_c)) %>% ungroup()
+temp$Month <- format(temp$day, '%m')
+temp$Year <- format(temp$day, '%Y')
+temp$dayz <- format(temp$day, '%d')
+# points(mean_temp~day,data=temp[c(temp$Year==2016 & temp$reef_type_code=='BAK' & temp$site=='LTER02'),],type='l',lwd=2,col=rgb(0,255,0,100,max=255))
+# points(mean_temp~day,data=temp[c(temp$Year==2016 & temp$reef_type_code=='BAK' & temp$site=='LTER03'),],type='l',lwd=2,col=rgb(255,165,0,100,max=255))
+# points(mean_temp~day,data=temp[c(temp$Year==2016 & temp$reef_type_code=='BAK' & temp$site=='LTER04'),],type='l',lwd=2,col=rgb(255,0,255,100,max=255))
+# points(mean_temp~day,data=temp[c(temp$Year==2016 & temp$reef_type_code=='BAK' & temp$site=='LTER06'),],type='l',lwd=2,col=rgb(160,32,240,100,max=255))
+
+st <- 255
+pal <- c(rgb(190,125,216,st,max=255),
+         rgb(141,177,71,st,max=255),
+         rgb(96,163,222,st,max=255),
+         rgb(213,144,71,st,max=255),
+         rgb(86,185,135,st,max=255),
+         rgb(229,112,134,st,max=255))
+
+temp <- subset(out, year==2016)
+plot(cumstress~day,data=temp[c(temp$reef_type_code=='FRI' & temp$site=='LTER06'),],ylab='Cumulative Heat Stress',xlab='',type='n',cex.lab=1.7,cex.axis=1.5,bty='l')
+text(as.Date('2016-01-05'),5,'B',cex=1.7)
+
+abline(v=as.Date('2016-05-08'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-09'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-10'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-11'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-12'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-13'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+abline(v=as.Date('2016-05-14'),col=rgb(190,190,190,255,max=255),lwd=1.8)
+points(cumstress~day,data=temp[c(temp$reef_type_code=='FRI' & temp$site=='LTER01'),],type='l',lwd=4,col=pal[1])
+points(cumstress~day,data=temp[c(temp$reef_type_code=='FRI' & temp$site=='LTER02'),],type='l',lwd=4,col=pal[2])
+points(cumstress~day,data=temp[c(temp$reef_type_code=='FRI' & temp$site=='LTER03'),],type='l',lwd=4,col=pal[3])
+points(cumstress~day,data=temp[c(temp$reef_type_code=='FRI' & temp$site=='LTER04'),],type='l',lwd=4,col=pal[4])
+points(cumstress~day,data=temp[c(temp$reef_type_code=='FRI' & temp$site=='LTER05'),],type='l',lwd=4,col=pal[5])
+points(cumstress~day,data=temp[c(temp$reef_type_code=='FRI' & temp$site=='LTER06'),],type='l',lwd=4,col=pal[6])
+legend('topright',legend=c('LTER 1','LTER 2','LTER 3','LTER 4','LTER 5','LTER 6'),col=pal,lty=1,lwd=4,cex=1.3,bty='n')
+dev.off()
+
+
 # summarise temperature trends for results
 out %>% filter(year == 2016 & cumstress > 0 & day < as.Date('2016-07-30')) %>% summarise(n_days=length(unique(day)),start=min(day),end=max(day)) %>% mutate(extent = end - start)
 out %>% filter(year == 2016 & cumstress > 0) %>% group_by(site) %>% summarise(min(day)) %>% ungroup()

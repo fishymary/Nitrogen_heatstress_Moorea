@@ -167,3 +167,53 @@ ggplot() +
 dev.off()
 
 
+# setEPS()
+# postscript('outputs/Figure2.eps',height=7,width=7)
+# ggplot() +
+#   theme_bw() +   
+#   # geom_raster(data=krigLLdf, aes(x=x, y=y, fill=pred),show.legend=FALSE) +
+#   # scale_fill_gradientn(colours = rev(rainbow(10))) +
+#   geom_point(data=krig2, aes(x=x, y=y, colour=pred), size=4) + 
+#   scale_colour_gradientn(name="% Nitrogen",colours = rev(rainbow(10))) + 
+#   theme(legend.position= c(0.9, 0.2),legend.text=element_text(size=12)) +
+#   geom_sf(data = mo.sf, fill=NA) +
+#   
+#   new_scale("fill") +
+#   geom_raster(data=hill.df, aes(x=x,y=y,fill = alt),show.legend=FALSE) + scale_fill_gradientn(colors = grey(20:100/100)) +
+#   new_scale("fill") +
+#   # geom_raster(data=dem.df, aes(x=x,y=y,fill = log(alt+.45)), alpha=0.30,show.legend=FALSE) + scale_fill_gradientn(colors = terrain.colors(100)) +
+#   geom_raster(data= dem.df.complete, aes(x=x,y=y,fill =alt_log),na.rm=T, alpha=0.30,show.legend=FALSE) + scale_fill_gradientn(colors = grey(1:100/100)) +
+#   geom_point(data=lterUTM.df, aes(long.1,lat.1),size=18,shape=22,stroke=1.15) + 
+#   new_scale("fill") +
+#   geom_point(data=ptsUTM.df, aes(Longitude.1,Latitude.1),size=1) +
+#   # geom_point(data=ptsUTM.df, aes(Longitude.1,Latitude.1,shape=Habitat),size=1.5) + scale_shape_manual(values=c(1,19)) +
+#   # geom_text_repel(data=lterUTM.df.back, aes(long.1,lat.1),label=lterUTM.df.back$Site) +
+#   coord_sf() +
+#   theme(axis.line=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.text.y=element_blank(),
+#         axis.ticks=element_blank(),
+#         axis.title.x=element_blank(),
+#         axis.title.y=element_blank()) + 
+#   # theme(panel.grid.major = element_blank(),
+#   #       plot.background=element_rect(fill='white')) + 
+#   theme(panel.grid.major = element_line(color = 'white', linetype = "dashed",size = 0.5),
+#         plot.background=element_rect(fill='white')) +
+#   # theme(legend.position = 'bottom',
+#   #       legend.justification='center',
+#   #       legend.key=element_rect(colour="white"),
+#   #       legend.text=element_text(size=16),
+#   #       legend.title=element_text(size=18)) +
+#   annotation_scale(location = "bl", width_hint = 0.25,text_cex=1) +
+#   annotation_north_arrow(location = "bl", which_north = "true", 
+#                          pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
+#                          style = north_arrow_fancy_orienteering) +
+#   annotate("text", x = 198576.0, y = 8064920 + 1100, label = "LTER 1",size=4) +
+#   annotate("text", x = 202527.4, y = 8065298 + 1100, label = "LTER 2",size=4) +
+#   annotate("text", x = 206348.7 + 1500, y = 8061512, label = "LTER 3",size=4) +
+#   annotate("text", x = 205727.6 + 1500, y = 8058194, label = "LTER 4",size=4) +
+#   annotate("text", x = 195586.2 - 1500, y = 8054071, label = "LTER 5",size=4) +
+#   annotate("text", x = 190191.7 - 1500, y = 8060737, label = "LTER 6",size=4)
+# dev.off()
+# # ggsave('outputs/Figure2.eps')
+# 
